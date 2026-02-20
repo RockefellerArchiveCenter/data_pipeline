@@ -237,6 +237,6 @@ Resources:
       FunctionName: !GetAtt DataMergeFunction.Arn
 
 Outputs:
-  DigitalIngestNotificationsFunction:
+  DataMergeFunctionArn:
     Description: 'Data Merge Lambda Function ARN'
     Value: !GetAtt DataMergeFunction.Arn
