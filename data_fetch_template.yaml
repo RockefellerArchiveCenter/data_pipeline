@@ -1,4 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::LanguageExtensions'
 
 Description: >
   data-fetch
@@ -38,26 +39,93 @@ Parameters:
   CartographerHealthCheckPath:
     Type: String
     Description: Health check path for Cartographer.
-  DynamoDbTable:
+  DynamoDbTableName:
     Type: String
     Description: DynamoDB table containing fetch data.
-    Default: fetches
-  # TODO figure out types
+    Default: "fetches"
+  EcsClusterArn:
+    Type: String
+    Description: ARN of ECS Cluster in which to run Task.
   RestrictedFindingAidStatuses:
-    Type: List<String>
+    Type: String
     Description: List of statuses denoting restricted finding aids.
-    Default: []
+    Default: ""
   ValidId0Prefixes:
-    Type: List<String>
-    Description: List of prefixes denoting valid finding aids
-    Default: ["FA"]
+    Type: String
+    Description: List of prefixes denoting valid finding aids.
+    Default: "FA"
+  SecurityGroup:
+    Type: String
+    Description: Security group for the ECS Task to use.
   SNSTopicArn:
     Type: String
-    Description: ARN for events SNS Topic
+    Description: ARN for SNS Topic to which events should be sent.
+  Subnet:
+    Type: String
+    Description: Subnet in which the ECS Task should run.
   Workload:
     Type: String
     Description: Name of workload for this stack.
 
+Mappings:
+  ObjectTypeMap:
+    UpdatedArchivalObject:
+      ObjectType: archival_object
+      Status: updated
+      Source: archivesspace
+    DeletedArchivalObject:
+      ObjectType: archival_object
+      Status: deleted
+      Source: archivesspace
+    UpdatedResource:
+      ObjectType: resource
+      Status: updated
+      Source: archivesspace
+    DeletedResource:
+      ObjectType: resource
+      Status: deleted
+      Source: archivesspace
+    UpdatedSubject:
+      ObjectType: subject
+      Status: updated
+      Source: archivesspace
+    DeletedSubject:
+      ObjectType: subject
+      Status: deleted
+      Source: archivesspace
+    UpdatedPerson:
+      ObjectType: agent_person
+      Status: updated
+      Source: archivesspace
+    DeletedPerson:
+      ObjectType: agent_person
+      Status: deleted
+      Source: archivesspace
+    UpdatedOrganization:
+      ObjectType: agent_corporate_entity
+      Status: updated
+      Source: archivesspace
+    DeletedOrganization:
+      ObjectType: agent_corporate_entity
+      Status: deleted
+      Source: archivesspace
+    UpdatedFamily:
+      ObjectType: agent_family
+      Status: updated
+      Source: archivesspace
+    DeletedFamily:
+      ObjectType: agent_family
+      Status: deleted
+      Source: archivesspace
+    UpdatedArrangementMap:
+      ObjectType: arrangement_map_component
+      Status: updated
+      Source: cartographer
+    DeletedArrangementMap:
+      ObjectType: arrangement_map_component
+      Status: deleted
+      Source: cartographer
+  
 Resources:
   ArchivesSpaceBaseurlParameter:
     Type: AWS::SSM::Parameter
@@ -143,7 +211,6 @@ Resources:
         WorkloadType: processing
       Type: String
       Value: !Ref DynamoDbTable
-  # TODO check types
   RestrictedFindingAidStatusesParameter:
     Type: AWS::SSM::Parameter
     Properties: 
@@ -168,6 +235,21 @@ Resources:
         WorkloadType: processing
       Type: StringList
       Value: !Ref ValidId0Prefixes
+  
+  DynamoDbTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref DynamoDbTableName
+      AttributeDefinitions:
+        - AttributeName: ObjectStatus
+          AttributeType: S
+        - AttributeName: ObjectType
+          AttributeType: S
+      KeySchema: 
+        - AttributeName: ObjectType
+          KeyType: HASH
+        - AttributeName: ObjectStatus
+          KeyType: RANGE
 
   ECSTaskExecutionRole:
     Type: AWS::IAM::Role
@@ -240,7 +322,6 @@ Resources:
         - Key: WorkloadType
           Value: processing
 
-  # TODO is this necessary?
   DataFetchUserAccessKey:
     Type: AWS::IAM::AccessKey
     Properties: 
@@ -249,7 +330,7 @@ Resources:
   DataFetchUserIdParameter:
     Type: AWS::SSM::Parameter
     Properties: 
-      Description: Secret Access Key ID for AssemblyUser.
+      Description: Secret Access Key ID for DataFetchUser.
       Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/AWS_ACCESS_KEY_ID
       Tags: 
         Environment: !Ref ApplicationEnvironment
@@ -262,7 +343,7 @@ Resources:
   DataFetchUserKeyParameter:
     Type: AWS::SSM::Parameter
     Properties: 
-      Description: Secret Access Key for AssemblyUser.
+      Description: Secret Access Key for DataFetchUser.
       Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/AWS_SECRET_ACCESS_KEY
       Tags: 
         Environment: !Ref ApplicationEnvironment
@@ -295,7 +376,7 @@ Resources:
               - 'sts:AssumeRole'
       Description: 'Allows access to SSM parameters.'
       Policies:
-        - PolicyName: AssemblySSMPolicy
+        - PolicyName: DataFetchSSMPolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -328,7 +409,7 @@ Resources:
               - 'sts:AssumeRole'
       Description: 'Allows user to send SNS messages.'
       Policies:
-        - PolicyName: AssemblySNSPolicy
+        - PolicyName: DataFetchSNSPolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -338,7 +419,39 @@ Resources:
                 Resource:
                   - !Ref SNSTopicArn
 
-  # TODO Dyanmodb role arn
+  DataFetchDynamoDbRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref ApplicationEnvironment
+        - Key: Application
+          Value: !Ref ApplicationName
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt DataFetchUser.Arn
+            Action:
+              - 'sts:AssumeRole'
+      Description: 'Allows user to read to and write from DynamoDB'
+      Policies:
+        - PolicyName: DataFetchDynamoPolicy
+          PolicyDocument: 
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:GetItem'
+                Resource:
+                  - !Ref DynamoDbTable
 
   DataFetchLogGroup:
     Type: AWS::Logs::LogGroup
@@ -355,74 +468,123 @@ Resources:
       LogGroupName: !Sub "/rac/${ApplicationEnvironment}/digital_ingest/ecs/${ApplicationName}"
       RetentionInDays: 90
   
-  DataFetchEcsTask:
-    Type: AWS::ECS::TaskDefinition
-    Properties: 
-      Cpu: "1024"
-      Memory: "3072"
-      ContainerDefinitions: 
-        - Name: !Ref ApplicationName
-          Image: !Sub "${ContainerAccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ApplicationName}:${ApplicationEnvironment}"
-          Essential: true
-          Environment:
-            - Name: ENVIRONMENT
+  Fn::ForEach::ObjectType:
+    - ObjectType
+    - - UpdatedArchivalObject
+      - DeletedArchivalObject
+      - UpdatedResource
+      - DeletedResource
+      - UpdatedSubject
+      - DeletedSubject
+      - UpdatedPerson
+      - DeletedPerson
+      - UpdatedOrganization
+      - DeletedOrganization
+      - UpdatedFamily
+      - DeletedFamily
+      - UpdatedArrangementMap
+      - DeletedArrangementMap
+    - DataFetch${ObjectType}EcsTask:
+        Type: AWS::ECS::TaskDefinition
+        Properties: 
+          Cpu: "1024"
+          Memory: "3072"
+          ContainerDefinitions: 
+            - Name: !Ref ApplicationName
+              Image: !Sub "${ContainerAccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ApplicationName}:${ApplicationEnvironment}"
+              Essential: true
+              Environment:
+                - Name: ENVIRONMENT
+                  Value: !Ref ApplicationEnvironment
+                - Name: AWS_REGION
+                  Value: !Ref AWS::Region
+                - Name: DYNAMODB_ROLE_ARN
+                  Value: !Ref DataFetchDynamoDbRole
+                - Name: SNS_ROLE_ARN
+                  Value: !Ref DataFetchSnsRole
+                - Name: SNS_TOPIC
+                  Value: !Ref SNSTopicArn
+                - Name: SSM_ROLE_ARN
+                  Value: !Ref DataFetchSsmRole
+                - Name: SOURCE_SYSTEM
+                  Value: !FindInMap [ObjectTypeMap, !Ref ObjectType, Source]
+                - Name: OBJECT_STATUS
+                  Value: !FindInMap [ObjectTypeMap, !Ref ObjectType, Status]
+                - Name: OBJECT_TYPE
+                  Value: !FindInMap [ObjectTypeMap, !Ref ObjectType, ObjectType]
+              MountPoints:
+                - SourceVolume: logging-volume
+                  ContainerPath: /var/tmp/
+                  ReadOnly: false
+              ReadonlyRootFilesystem: true
+              Secrets:
+                - Name: AWS_ACCESS_KEY_ID
+                  ValueFrom: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DataFetchUserIdParameter}'
+                - Name: AWS_SECRET_ACCESS_KEY
+                  ValueFrom: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DataFetchUserKeyParameter}'
+              LogConfiguration:
+                LogDriver: awslogs
+                Options:
+                  "awslogs-group": !Ref DataFetchLogGroup
+                  "awslogs-region": !Ref AWS::Region
+                  "awslogs-stream-prefix": "ecs"
+          ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+          Family: !Ref ApplicationName
+          NetworkMode: awsvpc
+          RequiresCompatibilities:
+            - FARGATE
+          RuntimePlatform:
+            CpuArchitecture: X86_64
+            OperatingSystemFamily: LINUX
+          Tags:
+            - Key: Environment
               Value: !Ref ApplicationEnvironment
-            - Name: AWS_REGION
-              Value: !Ref AWS::Region
-            - Name: DYNAMODB_ROLE_ARN
-              Value: !Ref DataFetchDynamoDbRole
-            - Name: SNS_ROLE_ARN
-              Value: !Ref DataFetchSnsRole
-            - Name: SNS_TOPIC
-              Value: !Ref SNSTopicArn
-            - Name: SSM_ROLE_ARN
-              Value: !Ref DataFetchSsmRole
-          MountPoints:
-            - SourceVolume: logging-volume
-              ContainerPath: /var/tmp/
-              ReadOnly: false
-          ReadonlyRootFilesystem: true
-          Secrets:
-            - Name: AWS_ACCESS_KEY_ID
-              ValueFrom: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DataFetchUserIdParameter}'
-            - Name: AWS_SECRET_ACCESS_KEY
-              ValueFrom: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DataFetchUserKeyParameter}'
-          LogConfiguration:
-            LogDriver: awslogs
-            Options:
-              "awslogs-group": !Ref DataFetchLogGroup
-              "awslogs-region": !Ref AWS::Region
-              "awslogs-stream-prefix": "ecs"
-      ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
-      Family: !Ref ApplicationName
-      NetworkMode: awsvpc
-      RequiresCompatibilities:
-        - FARGATE
-      RuntimePlatform:
-        CpuArchitecture: X86_64
-        OperatingSystemFamily: LINUX
-      Tags:
-        - Key: Environment
-          Value: !Ref ApplicationEnvironment
-        - Key: Application
-          Value: !Ref ApplicationName
-        - Key: Workload
-          Value: !Ref Workload
-        - Key: WorkloadType
-          Value: processing
-      Volumes: 
-        - Name: ebs
-          ConfiguredAtLaunch: true
-        - Name: logging-volume
-
-Outputs:
-  DataFetchArn:
-    Description: Data Fetch ECS Task Definition ARN
-    Value: !Ref DataFetchEcsTask
-    
-# TODO
-# regular trigger - add env variables
-    # source_system = getenv('SOURCE_SYSTEM')
-    # object_status = getenv('OBJECT_STATUS')
-    # object_type = getenv('OBJECT_TYPE')
-# DynamoDB 
+            - Key: Application
+              Value: !Ref ApplicationName
+            - Key: Workload
+              Value: !Ref Workload
+            - Key: WorkloadType
+              Value: processing
+          Volumes: 
+            - Name: ebs
+              ConfiguredAtLaunch: true
+            - Name: logging-volume
+      DataFetch${ObjectType}TaskEvent:
+        Type: AWS::Events::Rule
+        Properties:
+          Description: "Triggers fetches of data every ten minutes"
+          ScheduleExpression: rate(10 minutes)
+          State: ENABLED
+          Targets:
+            - Id: !Ref ApplicationName
+              Arn: !Ref EcsClusterArn
+              EcsParameters:
+                TaskDefinitionArn: !Sub DataFetch${ObjectType}EcsTask
+                NetworkConfiguration:
+                  AwsVpcConfiguration:
+                    AssignPublicIp: ENABLED
+                    Subnets: 
+                      - !Ref Subnet
+                    SecurityGroups:
+                      - !Ref SecurityGroup
+              RoleArn:
+                Fn::GetAtt: [!Sub "DataFetch${ObjectType}TaskEventRole", "Arn"]
+      DataFetch${ObjectType}TaskEventRole:
+        Type: AWS::IAM::Role
+        Properties:
+          AssumeRolePolicyDocument:
+            Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+          Policies:
+            - PolicyName: DataFetchTaskEventPolicy
+              PolicyDocument: 
+                Statement:
+                  Action:
+                    - ecs:RunTask
+                  Effect: Allow
+                  Resource:
+                    - !Sub 'arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${ApplicationName}*'
