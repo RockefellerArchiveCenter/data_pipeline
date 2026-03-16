@@ -18,16 +18,6 @@ Mappings:
     Subnet:
       dev: "subnet-098df07b0ab91cb1d"
       prod: "subnet-0102189437e2babd8"
-  ArchivesSpace:
-    Baseurl:
-      dev: https://as.dev.rockarch.org/api
-      prod: https://as.rockarch.org/api
-    Username:
-      dev: digital_ingest_transformation
-      prod: digital_ingest_transformation
-    RepoId:
-      dev: 2
-      prod: 2
 
 Parameters:
   Environment:
@@ -37,9 +27,6 @@ Parameters:
       - dev
       - prod
     Default: dev
-  ArchivesSpaceFetchPassword:
-    Type: String
-    Description: ArchivesSpace password for user associated with transformation service.
   Workload:
     Type: String
     Default: data_pipeline
