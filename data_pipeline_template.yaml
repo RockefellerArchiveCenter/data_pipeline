@@ -1,0 +1,355 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  data-pipeline
+
+  Pipeline for ingesting packages of born-digital and digitized content.
+
+Mappings:
+  DeployResources:
+    CloudFormationBucket:
+      dev: rac-dev-cloudformation-apps
+      prod: rac-prod-cloudformation-apps
+    CloudFormationBucketPrefix:
+      dev: digital_ingest_pipeline
+      prod: digital_ingest_pipeline
+    SecurityGroup:
+      dev: "sg-0f98d77d7bb7b4ce6"
+      prod: "sg-001d3c3a6ebf7b28a"
+    Subnet:
+      dev: "subnet-098df07b0ab91cb1d"
+      prod: "subnet-0102189437e2babd8"
+  ArchivesSpace:
+    Baseurl:
+      dev: https://as.dev.rockarch.org/api
+      prod: https://as.rockarch.org/api
+    Username:
+      dev: digital_ingest_transformation
+      prod: digital_ingest_transformation
+    RepoId:
+      dev: 2
+      prod: 2
+
+Parameters:
+  Environment:
+    Type: String
+    Description: The environment in which the infrastructure should be deployed.
+    AllowedValues:
+      - dev
+      - prod
+    Default: dev
+  ArchivesSpaceFetchPassword:
+    Type: String
+    Description: ArchivesSpace password for user associated with transformation service.
+  Workload:
+    Type: String
+    Default: data_pipeline
+    Description: Name of workload for this stack.
+
+
+Resources:
+  # SNS topic
+  DataPipelineTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Tags: 
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: digital-ingest-sns-topic
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+      TopicName: digital-ingest-notifications.fifo
+      FifoTopic: true
+      ContentBasedDeduplication: true
+
+  # SQS Merge Queue
+  DataMergeQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: data-pipeline-merge-queue
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+  
+  DataMergeQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: 
+              Service: 
+                - sns.amazonaws.com
+            Action:
+              - sqs:SendMessage
+            Resource: !GetAtt DataMergeQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref DataPipelineTopic
+      Queues:
+        - !Ref DataMergeQueue
+
+  # SQS Transform Queue
+  DataTransformQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: data-pipeline-transform-queue
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+  
+  DataTransformQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: 
+              Service: 
+                - sns.amazonaws.com
+            Action:
+              - sqs:SendMessage
+            Resource: !GetAtt DataTransformQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref DataPipelineTopic
+      Queues:
+        - !Ref DataTransformQueue
+
+  # SQS Index Queue
+  DataIndexQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: data-pipeline-index-queue
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+  
+  DataIndexQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: 
+              Service: 
+                - sns.amazonaws.com
+            Action:
+              - sqs:SendMessage
+            Resource: !GetAtt DataIndexQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref DataPipelineTopic
+      Queues:
+        - !Ref DataIndexQueue
+
+  # SQS Failure Notifications Queue
+  DataFailureNotificationsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: data-pipeline-notifications-queue
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+  
+  DataFailureNotificationsQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: 
+              Service: 
+                - sns.amazonaws.com
+            Action:
+              - sqs:SendMessage
+            Resource: !GetAtt DataFailureNotificationsQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref DataPipelineTopic
+      Queues:
+        - !Ref DataFailureNotificationsQueue
+
+  # SNS Subscription for SQS Merge Queue
+  DataMergeQueueSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref DataPipelineTopic
+      Protocol: sqs
+      RawMessageDelivery: true
+      Endpoint: !GetAtt DataMergeQueue.Arn
+      FilterPolicy: {"requested_action": ["merge"]}
+      FilterPolicyScope: MessageAttributes
+
+  # SNS Subscription for SQS Transform Queue
+  DataTransformQueueSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref DataPipelineTopic
+      Protocol: sqs
+      RawMessageDelivery: true
+      Endpoint: !GetAtt DataTransformQueue.Arn
+      FilterPolicy: {"requested_action": ["transform"]}
+      FilterPolicyScope: MessageAttributes
+
+  # SNS Subscription for SQS Index Queue
+  DataIndexSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref DataPipelineTopic
+      Protocol: sqs
+      RawMessageDelivery: true
+      Endpoint: !GetAtt DataIndexQueue.Arn
+      FilterPolicy: {"requested_action": ["index", "delete"]}
+      FilterPolicyScope: MessageAttributes
+
+  # SNS Subscription for SQS Failure Notifications Queue
+  DataFailureNotificationQueueSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref DataPipelineTopic
+      Protocol: sqs
+      RawMessageDelivery: true
+      Endpoint: !GetAtt DataFailureNotificationsQueue.Arn
+      FilterPolicy: {"outcome": ["FAILURE"]}
+      FilterPolicyScope: MessageAttributes
+
+  # ECS Cluster
+  DataPipelineECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties: 
+      CapacityProviders: 
+        - FARGATE
+      ClusterName: DataPipelineCluster
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+      Tags: 
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: data-pipeline-ecs-cluster
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+
+  # Fetch ECS Task
+  DataFetchTask:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL:
+        !Join ["/",
+          [
+          "https://s3.amazonaws.com",
+          !FindInMap [DeployResources, CloudFormationBucket, !Ref Environment],
+          !FindInMap [DeployResources, CloudFormationBucketPrefix, !Ref Environment],
+          "data_fetch_template.yaml"
+          ]
+        ]
+      Parameters:
+        ApplicationEnvironment: !Ref Environment
+        ApplicationName: data_fetch
+        Workload: !Ref Workload
+  
+  # Merge Lambda
+  DataMergeLambda:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL:
+        !Join ["/",
+          [
+          "https://s3.amazonaws.com",
+          !FindInMap [DeployResources, CloudFormationBucket, !Ref Environment],
+          !FindInMap [DeployResources, CloudFormationBucketPrefix, !Ref Environment],
+          "data_merge_template.yaml"
+          ]
+        ]
+      Parameters:
+        ApplicationEnvironment: !Ref Environment
+        ApplicationName: data_merge
+        Workload: !Ref Workload
+
+  # Transform Lambda
+  DataTransformLambda:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL:
+        !Join ["/",
+          [
+          "https://s3.amazonaws.com",
+          !FindInMap [DeployResources, CloudFormationBucket, !Ref Environment],
+          !FindInMap [DeployResources, CloudFormationBucketPrefix, !Ref Environment],
+          "data_transform_template.yaml"
+          ]
+        ]
+      Parameters:
+        ApplicationEnvironment: !Ref Environment
+        ApplicationName: data_transform
+        Workload: !Ref Workload
+
+  # Index Lambda
+  DataIndexLambda:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL:
+        !Join ["/",
+          [
+          "https://s3.amazonaws.com",
+          !FindInMap [DeployResources, CloudFormationBucket, !Ref Environment],
+          !FindInMap [DeployResources, CloudFormationBucketPrefix, !Ref Environment],
+          "data_index_template.yaml"
+          ]
+        ]
+      Parameters:
+        ApplicationEnvironment: !Ref Environment
+        ApplicationName: data_index
+        Workload: !Ref Workload
+
+  # Failure Notifications Lambda
+  DataFailureNotificationsLambda:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL:
+        !Join ["/",
+          [
+          "https://s3.amazonaws.com",
+          !FindInMap [DeployResources, CloudFormationBucket, !Ref Environment],
+          !FindInMap [DeployResources, CloudFormationBucketPrefix, !Ref Environment],
+          "data_notifications_template.yaml"
+          ]
+        ]
+      Parameters:
+        ApplicationEnvironment: !Ref Environment
+        ApplicationName: data_notifications
+        Workload: !Ref Workload
