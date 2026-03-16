@@ -18,6 +18,20 @@ Mappings:
     Subnet:
       dev: "subnet-098df07b0ab91cb1d"
       prod: "subnet-0102189437e2babd8"
+  ArchivesSpace:
+    BaseUrl: 
+      dev: https://as.dev.rockarch.org/api
+      prod: https://as.rockarch.org/api
+    Username:
+      dev: data_pipeline
+      prod: data_pipeline
+  Cartographer:
+    BaseUrl:
+      dev: https://cartographer.rockarch.org
+      prod: https://cartographer.rockarch.org
+    HealthCheckPath:
+      dev: "/status"
+      prod: "/status"
 
 Parameters:
   Environment:
@@ -31,7 +45,9 @@ Parameters:
     Type: String
     Default: data_pipeline
     Description: Name of workload for this stack.
-
+  ArchivesSpacePassword:
+    Type: String
+    Description: Passsword for ArchivesSpace user.
 
 Resources:
   # SNS topic
@@ -285,6 +301,15 @@ Resources:
       Parameters:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_merge
+        ArchivesSpaceBaseurl: !FindInMap [ArchivesSpace, BaseUrl, !Ref Environment]
+        ArchivesSpaceUsername: !FindInMap [ArchivesSpace, Username, !Ref Environment]
+        ArchivesSpacePassword: !Ref ArchivesSpacePassword
+        CartographerBaseurl: !FindInMap [Cartographer, BaseUrl, !Ref Environment]
+        CartographerHealthCheckPath: !FindInMap [Cartographer, HealthCheckPath, !Ref Environment]
+        SNSTopicArn: !Ref DataPipelineTopic
+        SQSQueueArn: !Ref DataMergeQueue
+        SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
+        Subnet: !FindInMap [DeployResources, Subnet, !Ref Environment]
         Workload: !Ref Workload
 
   # Transform Lambda
