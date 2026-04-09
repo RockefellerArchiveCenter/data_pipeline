@@ -321,6 +321,14 @@ Resources:
       Parameters:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_index
+        ElasticsearchHosts: !Ref ElasticsearchHosts
+        ElasticsearchIndex: !Ref ElasticsearchIndex
+        ElasticsearchApiKey: !Ref ElasticsearchApiKey
+        ElasticsearchTimeout: !Ref ElasticsearchTimeout
+        SNSTopicArn: !Ref DataPipelineTopic
+        SQSQueueArn: !Ref DataIndexQueue
+        SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
+        Subnet: !FindInMap [DeployResources, Subnet, !Ref Environment]
         Workload: !Ref Workload
 
   # Failure Notifications Lambda
