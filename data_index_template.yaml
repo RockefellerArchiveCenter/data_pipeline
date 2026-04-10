@@ -46,7 +46,7 @@ Resources:
   ElasticsearchHostsParam:
     Type: AWS::SSM::Parameter
     Properties:
-      Description: Comma-separated hostnames (including ports, if applicable) where Elasticsearch is available
+      Description: Comma-separated hostnames (including ports, if applicable) where Elasticsearch is available.
       Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/ELASTICSEARCH_HOSTS
       Tags:
         Environment: !Ref ApplicationEnvironment
@@ -174,6 +174,7 @@ Resources:
         Variables:
           ENV: !Ref ApplicationEnvironment
           APP_CONFIG_PATH: !Ref ApplicationName
+          ES_TIMEOUT: !Ref ElasticsearchTimeout
       Tags:
         - Key: Environment
           Value: !Ref ApplicationEnvironment
