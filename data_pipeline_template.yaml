@@ -31,7 +31,18 @@ Parameters:
     Type: String
     Default: data_pipeline
     Description: Name of workload for this stack.
-
+  ElasticsearchHosts:
+    Type: String
+    Description: Comma-separated hostnames (including ports, if applicable) where Elasticsearch is available.
+  ElasticsearchIndex:
+    Type: String
+    Description: Name of Elasticsearch index to target.
+  ElasticsearchApiKey:
+    Type: String
+    Description: API key provided by Elasticsearch. Leave blank if not applicable.
+  ElasticsearchTimeout:
+    Type: Number
+    Description: Elasticsearch connection timeout in seconds.
 
 Resources:
   # SNS topic
