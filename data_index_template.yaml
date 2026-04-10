@@ -164,7 +164,7 @@ Resources:
         S3Bucket: !Sub 'rac-${ApplicationEnvironment}-lambda'
         S3Key: !Sub '${ApplicationName}.zip'
       FunctionName: !Ref ApplicationName
-      Handler: data_index.lambda_handler
+      Handler: indexer.lambda_handler
       LoggingConfig:
         LogGroup: !Ref DataIndexLogGroup
       Role: !GetAtt DataIndexRole.Arn
