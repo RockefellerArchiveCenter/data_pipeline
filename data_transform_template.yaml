@@ -18,7 +18,7 @@ Parameters:
     Type: String
     Description: Name of the application to be deployed.
     Default: data_transform
-  InputQueueArn:
+  SQSQueueArn:
     Type: String
     Description: ARN of SQS Queue from which the Lambda should consume events.
   LambdaCodeS3Key:
@@ -67,6 +67,12 @@ Parameters:
   Workload:
     Type: String
     Description: Name of workload for this stack.
+  SecurityGroup:
+    Type: String
+    Description: ARN for security group to which Lambda should be attached.
+  Subnet:
+    Type: String
+    Description: ARN for subnet to which Lambda should be attached.
 
 Resources:
   SchemaAgentParameter:
@@ -285,18 +291,6 @@ Resources:
                 Resource:
                   - !GetAtt DataTransformSsmRole.Arn
                   - !GetAtt DataTransformSnsRole.Arn
-        - PolicyName: SqsPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'sqs:ReceiveMessage'
-                  - 'sqs:DeleteMessage'
-                  - 'sqs:GetQueueAttributes'
-                  - 'sqs:ChangeMessageVisibility'
-                Resource:
-                  - !Ref InputQueueArn
 
   DataTransformSsmRole:
     Type: AWS::IAM::Role
@@ -394,15 +388,28 @@ Resources:
           AWS_SSM_ROLE_ARN: !GetAtt DataTransformSsmRole.Arn
       LoggingConfig:
         LogGroup: !Ref DataTransformLogGroup
+      Tags:
+        - Key: Environment
+          Value: !Ref ApplicationEnvironment
+        - Key: Application
+          Value: !Ref ApplicationName
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
       Architectures:
         - x86_64
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+        SubnetIds:
+          - !Ref Subnet
 
   DataTransformEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
-      BatchSize: 10
       Enabled: true
-      EventSourceArn: !Ref InputQueueArn
+      EventSourceArn: !Ref SQSQueueArn
       FunctionName: !Ref DataTransformLambda
 
 Outputs:
