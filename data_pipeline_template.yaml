@@ -354,6 +354,8 @@ Resources:
         AssetBaseurl: !Ref AssetBaseurl
         SNSTopicArn: !Ref DataPipelineTopic
         Workload: !Ref Workload
+        SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
+        Subnet: !FindInMap [DeployResources, Subnet, !Ref Environment]
 
   # Index Lambda
   DataIndexLambda:
