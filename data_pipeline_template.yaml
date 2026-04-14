@@ -31,13 +31,6 @@ Parameters:
     Type: String
     Default: data_pipeline
     Description: Name of workload for this stack.
-  LambdaCodeS3Key:
-    Type: String
-    Description: S3 key for data-transform Lambda deployment package.
-  LambdaHandler:
-    Type: String
-    Description: Handler for data-transform Lambda function.
-    Default: transformer.lambda_handler
   SchemaAgent:
     Type: String
     Description: File name of agent schema for data transform.
@@ -344,8 +337,6 @@ Resources:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_transform
         SQSQueueArn: !GetAtt DataTransformQueue.Arn
-        LambdaCodeS3Key: !Ref LambdaCodeS3Key
-        LambdaHandler: !Ref LambdaHandler
         SchemaAgent: !Ref SchemaAgent
         SchemaCollection: !Ref SchemaCollection
         SchemaObject: !Ref SchemaObject

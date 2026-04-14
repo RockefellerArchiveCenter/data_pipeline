@@ -253,6 +253,7 @@ Resources:
   DataTransformLambdaRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Sub ${ApplicationEnvironment}-${ApplicationName}-lambda-role
       Tags:
         - Key: Environment
           Value: !Ref ApplicationEnvironment
@@ -313,7 +314,7 @@ Resources:
           - Effect: Allow
             Principal:
               AWS:
-                - !GetAtt DataTransformLambdaRole.Arn
+                - !Sub arn:aws:iam::${AWS::AccountId}:role/${ApplicationEnvironment}-${ApplicationName}-lambda-role
             Action:
               - 'sts:AssumeRole'
       Description: Allows access to SSM parameters.
@@ -326,8 +327,8 @@ Resources:
                 Action:
                   - 'ssm:GetParametersByPath'
                 Resource:
-                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}
-                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}/*
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}/*
 
   DataTransformSnsRole:
     Type: AWS::IAM::Role
@@ -347,7 +348,7 @@ Resources:
           - Effect: Allow
             Principal:
               AWS:
-                - !GetAtt DataTransformLambdaRole.Arn
+                - !Sub arn:aws:iam::${AWS::AccountId}:role/${ApplicationEnvironment}-${ApplicationName}-lambda-role
             Action:
               - 'sts:AssumeRole'
       Description: Allows Lambda to send SNS messages.
@@ -378,7 +379,6 @@ Resources:
       Environment:
         Variables:
           ENVIRONMENT: !Ref ApplicationEnvironment
-          AWS_REGION: !Ref AWS::Region
           AWS_SSM_ROLE_ARN: !GetAtt DataTransformSsmRole.Arn
       LoggingConfig:
         LogGroup: !Ref DataTransformLogGroup
