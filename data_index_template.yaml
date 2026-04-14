@@ -22,10 +22,12 @@ Parameters:
     Description: Name of Elasticsearch index to target.
   ElasticsearchApiKey:
     Type: String
+    Default: ""
     Description: API key provided by Elasticsearch. Leave blank if not applicable.
   ElasticsearchTimeout:
     Type: Number
-    Description: Elasticsearch connection timeout in seconds, defaults to 60 seconds in the code if not provided.
+    Default: 60
+    Description: Elasticsearch connection timeout in seconds.
   SNSTopicArn:
     Type: String
     Description: ARN for event SNS Topic
