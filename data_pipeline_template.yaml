@@ -43,6 +43,9 @@ Parameters:
   SchemaTerm:
     Type: String
     Description: File name of term schema for data transform.
+  SchemaBase:
+    Type: String
+    Description: File name of base schema.
   SchemasBaseDir:
     Type: String
     Description: Base directory containing schema files for data transform.
@@ -341,6 +344,7 @@ Resources:
         SchemaCollection: !Ref SchemaCollection
         SchemaObject: !Ref SchemaObject
         SchemaTerm: !Ref SchemaTerm
+        SchemaBase: !Ref SchemaBase
         SchemasBaseDir: !Ref SchemasBaseDir
         MovingImageRefs: !Ref MovingImageRefs
         AudioRefs: !Ref AudioRefs

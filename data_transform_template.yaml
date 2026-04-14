@@ -22,36 +22,51 @@ Parameters:
   SchemaAgent:
     Type: String
     Description: File name of agent schema.
+    Default: agent.json
   SchemaCollection:
     Type: String
     Description: File name of collection schema.
+    Default: collection.json
   SchemaObject:
     Type: String
     Description: File name of object schema.
+    Default: object.json
   SchemaTerm:
     Type: String
     Description: File name of term schema.
+    Default: term.json
+  SchemaBase:
+    Type: String
+    Description: File name of base schema.
+    Default: base.json
   SchemasBaseDir:
     Type: String
     Description: Base directory containing schema files.
+    Default: rac_schemas/schemas
   MovingImageRefs:
     Type: String
     Description: Comma-delimited list of moving image subject refs.
+    Default: /subjects/48300
   AudioRefs:
     Type: String
     Description: Comma-delimited list of audio subject refs.
+    Default: /subjects/1313
   PhotographRefs:
     Type: String
     Description: Comma-delimited list of photograph subject refs.
+    Default: /subjects/962
   DownloadBaseurl:
     Type: String
     Description: Base URL for download links.
+    Default: https://iiif.rockarch.org/pdfs
   ManifestBaseurl:
     Type: String
     Description: Base URL for IIIF manifests.
+    Default: https://iiif.rockarch.org/manifests
   AssetBaseurl:
     Type: String
     Description: Base URL for published assets.
+    Default: https://iiif.rockarch.org
   SNSTopicArn:
     Type: String
     Description: ARN for SNS Topic to which transformed events should be sent.
@@ -117,6 +132,19 @@ Resources:
         WorkloadType: processing
       Type: String
       Value: !Ref SchemaTerm
+
+  SchemaBaseParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: Base schema file name.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/SCHEMA_BASE
+      Tags:
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref SchemaBase
 
   SchemasBaseDirParameter:
     Type: AWS::SSM::Parameter
