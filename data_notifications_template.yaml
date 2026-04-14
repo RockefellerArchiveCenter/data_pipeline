@@ -59,7 +59,7 @@ Resources:
       Type: String
       Value: !Ref EventsTopicArn
 
-  DigitalIngestNotificationsRole:
+  DataNotificationsRole:
     Type: AWS::IAM::Role
     Properties:
       Tags:
@@ -82,7 +82,7 @@ Resources:
               - 'sts:AssumeRole'
       Description: !Sub 'Allows ${ApplicationName} lambda to be executed successfully.'
       Policies:
-        - PolicyName: DigitalIngestNotificationsParameterStorePolicy
+        - PolicyName: DataNotificationsParameterStorePolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -90,7 +90,7 @@ Resources:
                 Action: 
                   - 'ssm:GetParametersByPath*'
                 Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}*'
-        - PolicyName: DigitalIngestNotificationsLogPolicy
+        - PolicyName: DataNotificationsLogPolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -101,7 +101,7 @@ Resources:
                   - 'logs:PutLogEvents'
                 Resource:
                   - !GetAtt NotificationsLogGroup.Arn
-        - PolicyName: DigitalIngestNotificationsSQSPolicy
+        - PolicyName: DataNotificationsSQSPolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -111,7 +111,7 @@ Resources:
                   - 'sqs:DeleteMessage'
                   - 'sqs:GetQueueAttributes'
                 Resource: !Ref NotificationsQueueArn
-        - PolicyName: DigitalIngestNotificationsSNSPolicy
+        - PolicyName: DataNotificationsSNSPolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -120,7 +120,7 @@ Resources:
                   - 'sns:Publish'
                 Resource:
                   - !Ref EventsTopicArn
-        - PolicyName: DigitalIngestNotificationsVpcPolicy
+        - PolicyName: DataNotificationsVpcPolicy
           PolicyDocument: 
             Version: '2012-10-17'
             Statement:
@@ -138,17 +138,17 @@ Resources:
                 Resource:
                   - "*"
 
-  DigitalIngestNotificationsFunction:
+  DataNotificationsFunction:
     Type: AWS::Lambda::Function
     Properties:
       Code:
         S3Bucket: !Sub 'rac-${ApplicationEnvironment}-lambda'
         S3Key: !Sub '${ApplicationName}.zip'
       FunctionName: !Ref ApplicationName
-      Handler: handle_digital_ingest_notifications.lambda_handler
+      Handler: handle_data_notifications.lambda_handler
       LoggingConfig:
         LogGroup: !Ref NotificationsLogGroup
-      Role: !GetAtt DigitalIngestNotificationsRole.Arn
+      Role: !GetAtt DataNotificationsRole.Arn
       Runtime: python3.11
       Timeout: 30
       Environment:
@@ -187,13 +187,13 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${ApplicationName}"
       RetentionInDays: 90
 
-  DigitalIngestNotificationsEventSourceMapping:
+  DataNotificationsEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
       EventSourceArn: !Ref NotificationsQueueArn
-      FunctionName: !GetAtt DigitalIngestNotificationsFunction.Arn
+      FunctionName: !GetAtt DataNotificationsFunction.Arn
 
 Outputs:
-  DigitalIngestNotificationsFunction:
-    Description: 'Digital Ingest Notifications Lambda Function ARN'
-    Value: !GetAtt DigitalIngestNotificationsFunction.Arn
+  DataNotificationsFunction:
+    Description: 'Data Notifications Lambda Function ARN'
+    Value: !GetAtt DataNotificationsFunction.Arn
