@@ -28,7 +28,7 @@ Parameters:
     Description: Comma-separated hostnames (including ports, if applicable) where Elasticsearch is available.
   ElasticsearchApiKey:
     Type: String
-    Description: API key provided by Elasticsearch. Leave blank if not applicable.
+    Description: API key provided by Elasticsearch.
   SNSTopicArn:
     Type: String
     Description: ARN for event SNS Topic
