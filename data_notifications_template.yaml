@@ -25,8 +25,10 @@ Parameters:
     Description: ARN for subnet to which Lambda should be attached.
   Workload:
     Type: String
+    Description: Name of workload for this stack.
   TeamsUrl:
     Type: String
+    Description: URL of Teams channel.
 
 Resources:
   TeamsUrlParameter:
