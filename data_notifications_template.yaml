@@ -14,9 +14,6 @@ Parameters:
   ApplicationName:
     Type: String
     Description: The name of the application to be deployed.
-  EventsTopicArn:
-    Type: String
-    Description: ARN for event SNS Topic
   NotificationsQueueArn:
     Type: String
     Description: ARN for notifications SQS Queue
@@ -26,38 +23,24 @@ Parameters:
   Subnet:
     Type: String
     Description: ARN for subnet to which Lambda should be attached.
-  ZodiacBaseurl:
-    Type: String
-    Description: Base URL for Zodiac API.
   Workload:
     Type: String
-    Description: Name of workload for this stack.
+  TeamsUrl:
+    Type: String
 
 Resources:
-  ZodiacBaseurlParam:
+  TeamsUrlParameter:
     Type: AWS::SSM::Parameter
     Properties: 
-      Description: Base URL for Zodiac API.
-      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/ZODIAC_BASEURL
+      Description: URL for a Teams channel.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/TEAMS_URL
       Tags: 
         Environment: !Ref ApplicationEnvironment
         Application: !Ref ApplicationName
         Workload: !Ref Workload
         WorkloadType: processing
       Type: String
-      Value: !Ref ZodiacBaseurl
-  SnsTopicParam:
-    Type: AWS::SSM::Parameter
-    Properties: 
-      Description: ARN for SNS topic to send messages to.
-      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/SNS_TOPIC
-      Tags: 
-        Environment: !Ref ApplicationEnvironment
-        Application: !Ref ApplicationName
-        Workload: !Ref Workload
-        WorkloadType: processing
-      Type: String
-      Value: !Ref EventsTopicArn
+      Value: !Ref TeamsUrl
 
   DataNotificationsRole:
     Type: AWS::IAM::Role
@@ -111,32 +94,6 @@ Resources:
                   - 'sqs:DeleteMessage'
                   - 'sqs:GetQueueAttributes'
                 Resource: !Ref NotificationsQueueArn
-        - PolicyName: DataNotificationsSNSPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'sns:Publish'
-                Resource:
-                  - !Ref EventsTopicArn
-        - PolicyName: DataNotificationsVpcPolicy
-          PolicyDocument: 
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - "logs:CreateLogGroup"
-                  - "logs:CreateLogStream"
-                  - "logs:PutLogEvents"
-                  - "ec2:CreateNetworkInterface"
-                  - "ec2:DescribeNetworkInterfaces"
-                  - "ec2:DescribeSubnets"
-                  - "ec2:DeleteNetworkInterface"
-                  - "ec2:AssignPrivateIpAddresses"
-                  - "ec2:UnassignPrivateIpAddresses"
-                Resource:
-                  - "*"
 
   DataNotificationsFunction:
     Type: AWS::Lambda::Function
@@ -149,7 +106,7 @@ Resources:
       LoggingConfig:
         LogGroup: !Ref NotificationsLogGroup
       Role: !GetAtt DataNotificationsRole.Arn
-      Runtime: python3.11
+      Runtime: python3.12
       Timeout: 30
       Environment:
         Variables:
