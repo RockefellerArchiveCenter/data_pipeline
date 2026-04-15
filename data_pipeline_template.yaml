@@ -345,3 +345,7 @@ Resources:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_notifications
         Workload: !Ref Workload
+        NotificationsQueueArn: !Ref NotificationsQueueArn
+        SecurityGroup: !Ref SecurityGroup 
+        Subnet: !Ref Subnet 
+        TeamsUrl: !Ref TeamsUrl 
