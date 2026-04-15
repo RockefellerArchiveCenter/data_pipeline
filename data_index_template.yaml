@@ -4,6 +4,15 @@ Description: >
 
   Indexes transformed records into Elasticsearch.
 
+Mappings:
+  ElasticsearchConfig:
+    dev:
+      Index: default
+      Timeout: 60
+    prod:
+      Index: default
+      Timeout: 60
+
 Parameters:
   ApplicationEnvironment:
     Type: String
@@ -17,17 +26,9 @@ Parameters:
   ElasticsearchHosts:
     Type: String
     Description: Comma-separated hostnames (including ports, if applicable) where Elasticsearch is available.
-  ElasticsearchIndex:
-    Type: String
-    Description: Name of Elasticsearch index to target.
   ElasticsearchApiKey:
     Type: String
-    Default: ""
     Description: API key provided by Elasticsearch. Leave blank if not applicable.
-  ElasticsearchTimeout:
-    Type: Number
-    Default: 60
-    Description: Elasticsearch connection timeout in seconds.
   SNSTopicArn:
     Type: String
     Description: ARN for event SNS Topic
@@ -69,7 +70,7 @@ Resources:
         Workload: !Ref Workload
         WorkloadType: processing
       Type: String
-      Value: !Ref ElasticsearchIndex
+      Value: !FindInMap [ElasticsearchConfig, !Ref ApplicationEnvironment, Index]
 
   ElasticsearchApiKeyParam:
     Type: AWS::SSM::Parameter
@@ -176,7 +177,7 @@ Resources:
         Variables:
           ENV: !Ref ApplicationEnvironment
           APP_CONFIG_PATH: !Ref ApplicationName
-          ES_TIMEOUT: !Ref ElasticsearchTimeout
+          ES_TIMEOUT: !FindInMap [ElasticsearchConfig, !Ref ApplicationEnvironment, Timeout]
       Tags:
         - Key: Environment
           Value: !Ref ApplicationEnvironment

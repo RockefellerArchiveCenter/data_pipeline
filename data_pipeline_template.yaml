@@ -34,15 +34,10 @@ Parameters:
   ElasticsearchHosts:
     Type: String
     Description: Comma-separated hostnames (including ports, if applicable) where Elasticsearch is available.
-  ElasticsearchIndex:
-    Type: String
-    Description: Name of Elasticsearch index to target.
   ElasticsearchApiKey:
     Type: String
+    Default: ''
     Description: API key provided by Elasticsearch. Leave blank if not applicable.
-  ElasticsearchTimeout:
-    Type: Number
-    Description: Elasticsearch connection timeout in seconds.
 
 Resources:
   # SNS topic
@@ -333,9 +328,7 @@ Resources:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_index
         ElasticsearchHosts: !Ref ElasticsearchHosts
-        ElasticsearchIndex: !Ref ElasticsearchIndex
         ElasticsearchApiKey: !Ref ElasticsearchApiKey
-        ElasticsearchTimeout: !Ref ElasticsearchTimeout
         SNSTopicArn: !Ref DataPipelineTopic
         SQSQueueArn: !Ref DataIndexQueue
         SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
