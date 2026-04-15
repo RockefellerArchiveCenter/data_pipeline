@@ -31,7 +31,12 @@ Parameters:
     Type: String
     Default: data_pipeline
     Description: Name of workload for this stack.
-
+  NotificationsQueueArn:
+    Type: String
+    Description: ARN for notifications SQS Queue
+  TeamsUrl:
+    Type: String
+    Description: URL of Teams channel.
 
 Resources:
   # SNS topic
