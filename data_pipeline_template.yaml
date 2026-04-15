@@ -51,10 +51,10 @@ Parameters:
     Description: Base directory containing schema files for data transform.
   MovingImageRefs:
     Type: String
-    Description: Comma-separated list of moving image subject refs for data transform.
+    Description: Comma-delimited list of moving image subject refs for data transform.
   AudioRefs:
     Type: String
-    Description: Comma-separated list of audio subject refs for data transform.
+    Description: Comma-delimited list of audio subject refs for data transform.
   PhotographRefs:
     Type: String
     Description: Comma-delimited list of photograph subject refs for data transform.
