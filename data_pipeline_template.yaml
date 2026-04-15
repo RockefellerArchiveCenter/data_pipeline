@@ -31,42 +31,6 @@ Parameters:
     Type: String
     Default: data_pipeline
     Description: Name of workload for this stack.
-  SchemaAgent:
-    Type: String
-    Description: File name of agent schema for data transform.
-  SchemaCollection:
-    Type: String
-    Description: File name of collection schema for data transform.
-  SchemaObject:
-    Type: String
-    Description: File name of object schema for data transform.
-  SchemaTerm:
-    Type: String
-    Description: File name of term schema for data transform.
-  SchemaBase:
-    Type: String
-    Description: File name of base schema.
-  SchemasBaseDir:
-    Type: String
-    Description: Base directory containing schema files for data transform.
-  MovingImageRefs:
-    Type: String
-    Description: Comma-delimited list of moving image subject refs for data transform.
-  AudioRefs:
-    Type: String
-    Description: Comma-delimited list of audio subject refs for data transform.
-  PhotographRefs:
-    Type: String
-    Description: Comma-delimited list of photograph subject refs for data transform.
-  DownloadBaseurl:
-    Type: String
-    Description: Base URL for data transform download links.
-  ManifestBaseurl:
-    Type: String
-    Description: Base URL for data transform IIIF manifests.
-  AssetBaseurl:
-    Type: String
-    Description: Base URL for data transform published assets.
 
 
 Resources:
@@ -340,18 +304,6 @@ Resources:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_transform
         SQSQueueArn: !GetAtt DataTransformQueue.Arn
-        SchemaAgent: !Ref SchemaAgent
-        SchemaCollection: !Ref SchemaCollection
-        SchemaObject: !Ref SchemaObject
-        SchemaTerm: !Ref SchemaTerm
-        SchemaBase: !Ref SchemaBase
-        SchemasBaseDir: !Ref SchemasBaseDir
-        MovingImageRefs: !Ref MovingImageRefs
-        AudioRefs: !Ref AudioRefs
-        PhotographRefs: !Ref PhotographRefs
-        DownloadBaseurl: !Ref DownloadBaseurl
-        ManifestBaseurl: !Ref ManifestBaseurl
-        AssetBaseurl: !Ref AssetBaseurl
         SNSTopicArn: !Ref DataPipelineTopic
         Workload: !Ref Workload
         SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]

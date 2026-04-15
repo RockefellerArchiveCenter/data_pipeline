@@ -312,7 +312,6 @@ Resources:
                   - 'logs:PutLogEvents'
                 Resource:
                   - !GetAtt DataTransformLogGroup.Arn
-                  - !Sub '${DataTransformLogGroup.Arn}:*'
         - PolicyName: AssumeRolePolicy
           PolicyDocument:
             Version: '2012-10-17'
@@ -355,7 +354,6 @@ Resources:
                 Action:
                   - 'ssm:GetParametersByPath'
                 Resource:
-                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}
                   - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}/*
 
   DataTransformSnsRole:
@@ -430,7 +428,6 @@ Resources:
   DataTransformEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
-      Enabled: true
       EventSourceArn: !Ref SQSQueueArn
       FunctionName: !Ref DataTransformLambda
 
