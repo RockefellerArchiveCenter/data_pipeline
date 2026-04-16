@@ -329,7 +329,7 @@ Resources:
         ElasticsearchHosts: !Ref ElasticsearchHosts
         ElasticsearchApiKey: !Ref ElasticsearchApiKey
         SNSTopicArn: !Ref DataPipelineTopic
-        SQSQueueArn: !Ref DataIndexQueue
+        SQSQueueArn: !GetAtt DataIndexQueue.Arn
         SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
         Subnet: !FindInMap [DeployResources, Subnet, !Ref Environment]
         Workload: !Ref Workload
