@@ -307,9 +307,6 @@ Resources:
               - Effect: Allow
                 Action:
                   - 'sts:AssumeRole'
-                Resource:
-                  - !GetAtt DataTransformSsmRole.Arn
-                  - !GetAtt DataTransformSnsRole.Arn
 
   DataTransformSsmRole:
     Type: AWS::IAM::Role
