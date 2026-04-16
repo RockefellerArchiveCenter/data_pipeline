@@ -250,18 +250,6 @@ Resources:
       Type: String
       Value: !Ref SNSTopicArn
 
-  DataTransformSnsRoleParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Description: SNS role ARN.
-      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/SNS_ROLE_ARN
-      Tags:
-        Environment: !Ref ApplicationEnvironment
-        Application: !Ref ApplicationName
-        Workload: !Ref Workload
-        WorkloadType: processing
-      Type: String
-      Value: !GetAtt DataTransformSnsRole.Arn
 
   DataTransformLogGroup:
     Type: AWS::Logs::LogGroup
@@ -406,6 +394,7 @@ Resources:
         Variables:
           ENVIRONMENT: !Ref ApplicationEnvironment
           AWS_SSM_ROLE_ARN: !GetAtt DataTransformSsmRole.Arn
+          SNS_ROLE_ARN: !GetAtt DataTransformSnsRole.Arn
       LoggingConfig:
         LogGroup: !Ref DataTransformLogGroup
       Tags:
