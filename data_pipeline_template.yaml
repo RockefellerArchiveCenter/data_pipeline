@@ -338,8 +338,7 @@ Resources:
       Parameters:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_notifications
-        Workload: !FindInMap [DeployResources, Workload, !Ref Environment]
+        Workload: !Ref Workload
         NotificationsQueueArn: !GetAtt DataFailureNotificationsQueue.Arn
         SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
-        Subnet: !Ref !FindInMap [DeployResources, Subnet, !Ref Environment] 
-        TeamsUrl: !Ref TeamsUrl 
+        Subnet: !FindInMap [DeployResources, Subnet, !Ref Environment] 
