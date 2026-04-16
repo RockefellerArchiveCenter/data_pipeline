@@ -300,13 +300,6 @@ Resources:
                   - 'logs:PutLogEvents'
                 Resource:
                   - !GetAtt DataTransformLogGroup.Arn
-        - PolicyName: AssumeRolePolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - 'sts:AssumeRole'
 
   DataTransformSsmRole:
     Type: AWS::IAM::Role
