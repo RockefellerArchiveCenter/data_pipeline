@@ -347,5 +347,5 @@ Resources:
         Workload: !Ref Workload
         NotificationsQueueArn: !GetAtt DataFailureNotificationsQueue.Arn
         SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
-        Subnet: !Ref Subnet 
+        Subnet: !Ref !FindInMap [DeployResources, Subnet, !Ref Environment] 
         TeamsUrl: !Ref TeamsUrl 
