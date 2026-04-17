@@ -26,9 +26,12 @@ Parameters:
   Workload:
     Type: String
     Description: Name of workload for this stack.
-  TeamsUrl:
-    Type: String
-    Description: URL of Teams channel.
+
+Mappings:
+  Teams: 
+    ChannelUrl: 
+      dev: ""
+      prod: ""
 
 Resources:
   TeamsUrlParameter:
@@ -42,7 +45,7 @@ Resources:
         Workload: !Ref Workload
         WorkloadType: processing
       Type: String
-      Value: !Ref TeamsUrl
+      Value: !FindInMap [Teams, ChannelUrl, !Ref Environment]
 
   DataNotificationsRole:
     Type: AWS::IAM::Role
