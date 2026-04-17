@@ -1,0 +1,416 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  data-transform
+
+  Transforms fetched data for discovery.
+
+Parameters:
+  ApplicationEnvironment:
+    Type: String
+    Description: Environment in which application should be deployed.
+    AllowedValues:
+      - dev
+      - prod
+    Default: dev
+  ApplicationName:
+    Type: String
+    Description: Name of the application to be deployed.
+    Default: data_transform
+  SQSQueueArn:
+    Type: String
+    Description: ARN of SQS Queue from which the Lambda should consume events.
+  SchemaAgent:
+    Type: String
+    Description: File name of agent schema.
+    Default: agent.json
+  SchemaCollection:
+    Type: String
+    Description: File name of collection schema.
+    Default: collection.json
+  SchemaObject:
+    Type: String
+    Description: File name of object schema.
+    Default: object.json
+  SchemaTerm:
+    Type: String
+    Description: File name of term schema.
+    Default: term.json
+  SchemaBase:
+    Type: String
+    Description: File name of base schema.
+    Default: base.json
+  SchemasBaseDir:
+    Type: String
+    Description: Base directory containing schema files.
+    Default: rac_schemas/schemas
+  MovingImageRefs:
+    Type: String
+    Description: Comma-delimited list of moving image subject refs.
+    Default: /subjects/48300
+  AudioRefs:
+    Type: String
+    Description: Comma-delimited list of audio subject refs.
+    Default: /subjects/1313
+  PhotographRefs:
+    Type: String
+    Description: Comma-delimited list of photograph subject refs.
+    Default: /subjects/962
+  DownloadBaseurl:
+    Type: String
+    Description: Base URL for download links.
+    Default: https://iiif.rockarch.org/pdfs
+  ManifestBaseurl:
+    Type: String
+    Description: Base URL for IIIF manifests.
+    Default: https://iiif.rockarch.org/manifests
+  AssetBaseurl:
+    Type: String
+    Description: Base URL for published assets.
+    Default: https://iiif.rockarch.org
+  SNSTopicArn:
+    Type: String
+    Description: ARN for SNS Topic to which transformed events should be sent.
+  Workload:
+    Type: String
+    Description: Name of workload for this stack.
+  SecurityGroup:
+    Type: String
+    Description: ARN for security group to which Lambda should be attached.
+  Subnet:
+    Type: String
+    Description: ARN for subnet to which Lambda should be attached.
+
+Resources:
+  SchemaAgentParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: Agent schema file name.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/SCHEMA_AGENT
+      Tags:
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref SchemaAgent
+
+  SchemaCollectionParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: Collection schema file name.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/SCHEMA_COLLECTION
+      Tags:
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref SchemaCollection
+
+  SchemaObjectParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: Object schema file name.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/SCHEMA_OBJECT
+      Tags:
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref SchemaObject
+
+  SchemaTermParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: Term schema file name.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/SCHEMA_TERM
+      Tags:
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref SchemaTerm
+
+  SchemaBaseParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: Base schema file name.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/SCHEMA_BASE
+      Tags:
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref SchemaBase
+
+  SchemasBaseDirParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: Schema base directory.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/SCHEMAS_BASE_DIR
+      Tags:
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref SchemasBaseDir
+
+  MovingImageRefsParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: List of moving image refs.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/MOVING_IMAGE_REFS
+      Tags:
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref MovingImageRefs
+
+  AudioRefsParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: List of audio refs.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/AUDIO_REFS
+      Tags:
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref AudioRefs
+
+  PhotographRefsParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: List of photograph refs.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/PHOTOGRAPH_REFS
+      Tags:
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref PhotographRefs
+
+  DownloadBaseurlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: Download base URL.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/DOWNLOAD_BASEURL
+      Tags:
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref DownloadBaseurl
+
+  ManifestBaseurlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: Manifest base URL.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/MANIFEST_BASEURL
+      Tags:
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref ManifestBaseurl
+
+  AssetBaseurlParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: Asset base URL.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/ASSET_BASEURL
+      Tags:
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref AssetBaseurl
+
+  SnsTopicArnParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: SNS topic ARN.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/SNS_TOPIC_ARN
+      Tags:
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref SNSTopicArn
+
+
+  DataTransformLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref ApplicationEnvironment
+        - Key: Application
+          Value: !Ref ApplicationName
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+      LogGroupName: !Sub "/rac/${ApplicationEnvironment}/data_pipeline/lambda/${ApplicationName}"
+      RetentionInDays: 90
+
+  DataTransformLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ApplicationEnvironment}-${ApplicationName}-lambda-role
+      Tags:
+        - Key: Environment
+          Value: !Ref ApplicationEnvironment
+        - Key: Application
+          Value: !Ref ApplicationName
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: LogPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource:
+                  - !GetAtt DataTransformLogGroup.Arn
+
+  DataTransformSsmRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref ApplicationEnvironment
+        - Key: Application
+          Value: !Ref ApplicationName
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:role/${ApplicationEnvironment}-${ApplicationName}-lambda-role
+            Action:
+              - 'sts:AssumeRole'
+      Description: Allows access to SSM parameters.
+      Policies:
+        - PolicyName: DataTransformSSMPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ssm:GetParametersByPath'
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}/*
+
+  DataTransformSnsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref ApplicationEnvironment
+        - Key: Application
+          Value: !Ref ApplicationName
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !Sub arn:aws:iam::${AWS::AccountId}:role/${ApplicationEnvironment}-${ApplicationName}-lambda-role
+            Action:
+              - 'sts:AssumeRole'
+      Description: Allows Lambda to send SNS messages.
+      Policies:
+        - PolicyName: DataTransformSNSPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'sns:Publish'
+                Resource:
+                  - !Ref SNSTopicArn
+
+  DataTransformLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: !Sub rac-${ApplicationEnvironment}-lambda
+        S3Key: !Sub '${ApplicationName}.zip'
+      Description: Transforms fetched data for discovery.
+      FunctionName: !Sub ${ApplicationEnvironment}-${ApplicationName}
+      Handler: transformer.lambda_handler
+      MemorySize: 1024
+      Role: !GetAtt DataTransformLambdaRole.Arn
+      Runtime: python3.12
+      Timeout: 900
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref ApplicationEnvironment
+          AWS_SSM_ROLE_ARN: !GetAtt DataTransformSsmRole.Arn
+          SNS_ROLE_ARN: !GetAtt DataTransformSnsRole.Arn
+      LoggingConfig:
+        LogGroup: !Ref DataTransformLogGroup
+      Tags:
+        - Key: Environment
+          Value: !Ref ApplicationEnvironment
+        - Key: Application
+          Value: !Ref ApplicationName
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+      Architectures:
+        - x86_64
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+        SubnetIds:
+          - !Ref Subnet
+
+  DataTransformEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !Ref SQSQueueArn
+      FunctionName: !Ref DataTransformLambda
+
+Outputs:
+  LambdaArn:
+    Description: ARN of data-transform Lambda.
+    Value: !GetAtt DataTransformLambda.Arn

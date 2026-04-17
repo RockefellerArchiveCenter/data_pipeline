@@ -48,6 +48,12 @@ Parameters:
   ArchivesSpacePassword:
     Type: String
     Description: Passsword for ArchivesSpace user.
+  ElasticsearchHosts:
+    Type: String
+    Description: Comma-separated hostnames (including ports, if applicable) where Elasticsearch is available.
+  ElasticsearchApiKey:
+    Type: String
+    Description: API key provided by Elasticsearch.
 
 Resources:
   # SNS topic
@@ -222,7 +228,7 @@ Resources:
       Protocol: sqs
       RawMessageDelivery: true
       Endpoint: !GetAtt DataTransformQueue.Arn
-      FilterPolicy: {"requested_action": ["transform"]}
+      FilterPolicy: {"requested_action": ["updated"]}
       FilterPolicyScope: MessageAttributes
 
   # SNS Subscription for SQS Index Queue
@@ -328,7 +334,11 @@ Resources:
       Parameters:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_transform
+        SQSQueueArn: !GetAtt DataTransformQueue.Arn
+        SNSTopicArn: !Ref DataPipelineTopic
         Workload: !Ref Workload
+        SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
+        Subnet: !FindInMap [DeployResources, Subnet, !Ref Environment]
 
   # Index Lambda
   DataIndexLambda:
@@ -346,6 +356,12 @@ Resources:
       Parameters:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_index
+        ElasticsearchHosts: !Ref ElasticsearchHosts
+        ElasticsearchApiKey: !Ref ElasticsearchApiKey
+        SNSTopicArn: !Ref DataPipelineTopic
+        SQSQueueArn: !GetAtt DataIndexQueue.Arn
+        SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
+        Subnet: !FindInMap [DeployResources, Subnet, !Ref Environment]
         Workload: !Ref Workload
 
   # Failure Notifications Lambda
@@ -365,3 +381,6 @@ Resources:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_notifications
         Workload: !Ref Workload
+        NotificationsQueueArn: !GetAtt DataFailureNotificationsQueue.Arn
+        SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
+        Subnet: !FindInMap [DeployResources, Subnet, !Ref Environment] 
