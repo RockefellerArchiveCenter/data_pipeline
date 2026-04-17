@@ -25,6 +25,9 @@ Mappings:
     Username:
       dev: data_pipeline
       prod: data_pipeline
+    Repo:
+      dev: 2
+      prod: 2
   Cartographer:
     BaseUrl:
       dev: https://cartographer.rockarch.org
@@ -32,6 +35,10 @@ Mappings:
     HealthCheckPath:
       dev: "/status"
       prod: "/status"
+  DynamoDb:
+    TableName:
+      dev: data-pipeline
+      prod: data-pipeline
 
 Parameters:
   Environment:
@@ -64,12 +71,12 @@ Resources:
         - Key: Environment
           Value: !Ref Environment
         - Key: Application
-          Value: digital-ingest-sns-topic
+          Value: data-pipeline-sns-topic
         - Key: Workload
           Value: !Ref Workload
         - Key: WorkloadType
           Value: processing
-      TopicName: digital-ingest-notifications.fifo
+      TopicName: data-pipeline-notifications.fifo
       FifoTopic: true
       ContentBasedDeduplication: true
 
@@ -289,8 +296,19 @@ Resources:
       Parameters:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_fetch
+        ArchivesSpaceBaseurl: !FindInMap [ArchivesSpace, BaseUrl, !Ref Environment]
+        ArchivesSpaceUsername: !FindInMap [ArchivesSpace, Username, !Ref Environment]
+        ArchivesSpacePassword: !Ref ArchivesSpacePassword
+        ArchivesSpaceRepo: !FindInMap [ArchivesSpace, Repo, !Ref Environment]
+        CartographerBaseurl: !FindInMap [Cartographer, BaseUrl, !Ref Environment]
+        CartographerHealthCheckPath: !FindInMap [Cartographer, HealthCheckPath, !Ref Environment]
+        DynamoDbTableName: !FindInMap [DynamoDb, TableName, !Ref Environment]
+        EcsClusterArn: !GetAtt  DataPipelineECSCluster.Arn
+        SNSTopicArn: !Ref DataPipelineTopic
+        SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
+        Subnet: !FindInMap [DeployResources, Subnet, !Ref Environment]
         Workload: !Ref Workload
-  
+
   # Merge Lambda
   DataMergeLambda:
     Type: "AWS::CloudFormation::Stack"
