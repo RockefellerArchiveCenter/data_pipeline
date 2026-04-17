@@ -206,7 +206,7 @@ Resources:
       Protocol: sqs
       RawMessageDelivery: true
       Endpoint: !GetAtt DataTransformQueue.Arn
-      FilterPolicy: {"requested_action": ["transform"]}
+      FilterPolicy: {"requested_action": ["updated"]}
       FilterPolicyScope: MessageAttributes
 
   # SNS Subscription for SQS Index Queue
@@ -303,7 +303,11 @@ Resources:
       Parameters:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_transform
+        SQSQueueArn: !GetAtt DataTransformQueue.Arn
+        SNSTopicArn: !Ref DataPipelineTopic
         Workload: !Ref Workload
+        SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
+        Subnet: !FindInMap [DeployResources, Subnet, !Ref Environment]
 
   # Index Lambda
   DataIndexLambda:
