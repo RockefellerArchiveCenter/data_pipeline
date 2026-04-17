@@ -31,7 +31,12 @@ Parameters:
     Type: String
     Default: data_pipeline
     Description: Name of workload for this stack.
-
+  ElasticsearchHosts:
+    Type: String
+    Description: Comma-separated hostnames (including ports, if applicable) where Elasticsearch is available.
+  ElasticsearchApiKey:
+    Type: String
+    Description: API key provided by Elasticsearch.
 
 Resources:
   # SNS topic
@@ -325,6 +330,12 @@ Resources:
       Parameters:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_index
+        ElasticsearchHosts: !Ref ElasticsearchHosts
+        ElasticsearchApiKey: !Ref ElasticsearchApiKey
+        SNSTopicArn: !Ref DataPipelineTopic
+        SQSQueueArn: !GetAtt DataIndexQueue.Arn
+        SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
+        Subnet: !FindInMap [DeployResources, Subnet, !Ref Environment]
         Workload: !Ref Workload
 
   # Failure Notifications Lambda
