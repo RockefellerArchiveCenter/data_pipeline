@@ -45,7 +45,7 @@ Resources:
         Workload: !Ref Workload
         WorkloadType: processing
       Type: String
-      Value: !FindInMap [Teams, ChannelUrl, !Ref Environment]
+      Value: !FindInMap [Teams, ChannelUrl, !Ref ApplicationEnvironment]
 
   DataNotificationsRole:
     Type: AWS::IAM::Role
