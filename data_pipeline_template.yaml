@@ -355,3 +355,6 @@ Resources:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_notifications
         Workload: !Ref Workload
+        NotificationsQueueArn: !GetAtt DataFailureNotificationsQueue.Arn
+        SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
+        Subnet: !FindInMap [DeployResources, Subnet, !Ref Environment] 
