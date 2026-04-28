@@ -49,7 +49,7 @@ Parameters:
   RestrictedFindingAidStatuses:
     Type: String
     Description: List of statuses denoting restricted finding aids.
-    Default: ""
+    Default: restricted
   ValidId0Prefixes:
     Type: String
     Description: List of prefixes denoting valid finding aids.
@@ -221,7 +221,7 @@ Resources:
         Application: !Ref ApplicationName
         Workload: !Ref Workload
         WorkloadType: processing
-      Type: StringList
+      Type: String
       Value: !Ref RestrictedFindingAidStatuses
   ValidId0PrefixesParameter:
     Type: AWS::SSM::Parameter
@@ -233,13 +233,16 @@ Resources:
         Application: !Ref ApplicationName
         Workload: !Ref Workload
         WorkloadType: processing
-      Type: StringList
+      Type: String
       Value: !Ref ValidId0Prefixes
   
   DynamoDbTable:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: !Ref DynamoDbTableName
+      ProvisionedThroughput:
+        WriteCapacityUnits: 10
+        ReadCapacityUnits: 10
       AttributeDefinitions:
         - AttributeName: ObjectStatus
           AttributeType: S
@@ -451,7 +454,7 @@ Resources:
                   - 'dynamodb:PutItem'
                   - 'dynamodb:GetItem'
                 Resource:
-                  - !Ref DynamoDbTable
+                  - !GetAtt DynamoDbTable.Arn
 
   DataFetchLogGroup:
     Type: AWS::Logs::LogGroup
@@ -468,7 +471,7 @@ Resources:
       LogGroupName: !Sub "/rac/${ApplicationEnvironment}/digital_ingest/ecs/${ApplicationName}"
       RetentionInDays: 90
   
-  Fn::ForEach::ObjectType:
+  Fn::ForEach::ObjectFetchType:
     - ObjectType
     - - UpdatedArchivalObject
       - DeletedArchivalObject
@@ -529,7 +532,7 @@ Resources:
                   "awslogs-region": !Ref AWS::Region
                   "awslogs-stream-prefix": "ecs"
           ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
-          Family: !Ref ApplicationName
+          Family: !Sub DataFetch${ObjectType}EcsTask
           NetworkMode: awsvpc
           RequiresCompatibilities:
             - FARGATE
@@ -546,20 +549,20 @@ Resources:
             - Key: WorkloadType
               Value: processing
           Volumes: 
-            - Name: ebs
-              ConfiguredAtLaunch: true
             - Name: logging-volume
       DataFetch${ObjectType}TaskEvent:
         Type: AWS::Events::Rule
+        DependsOn: !Sub DataFetch${ObjectType}EcsTask
         Properties:
           Description: "Triggers fetches of data every ten minutes"
           ScheduleExpression: rate(10 minutes)
-          State: ENABLED
+          State: DISABLED
           Targets:
-            - Id: !Ref ApplicationName
+            - Id: !Sub DataFetch${ObjectType}EcsTask
               Arn: !Ref EcsClusterArn
               EcsParameters:
-                TaskDefinitionArn: !Sub DataFetch${ObjectType}EcsTask
+                TaskDefinitionArn:
+                  Fn::GetAtt: [!Sub "DataFetch${ObjectType}EcsTask", "TaskDefinitionArn"]
                 NetworkConfiguration:
                   AwsVpcConfiguration:
                     AssignPublicIp: ENABLED

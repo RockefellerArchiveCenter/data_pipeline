@@ -23,15 +23,12 @@ Parameters:
   Subnet:
     Type: String
     Description: ARN for subnet to which Lambda should be attached.
+  TeamsUrl:
+    Type: String
+    Description: URL for Teams Channel to which messages will be posted.
   Workload:
     Type: String
     Description: Name of workload for this stack.
-
-Mappings:
-  Teams: 
-    ChannelUrl: 
-      dev: ""
-      prod: ""
 
 Resources:
   TeamsUrlParameter:
@@ -45,7 +42,7 @@ Resources:
         Workload: !Ref Workload
         WorkloadType: processing
       Type: String
-      Value: !FindInMap [Teams, ChannelUrl, !Ref ApplicationEnvironment]
+      Value: !Ref TeamsUrl
 
   DataNotificationsRole:
     Type: AWS::IAM::Role
@@ -99,6 +96,20 @@ Resources:
                   - 'sqs:DeleteMessage'
                   - 'sqs:GetQueueAttributes'
                 Resource: !Ref NotificationsQueueArn
+        - PolicyName: DataNotificationsVpcPolicy
+          PolicyDocument: 
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ec2:CreateNetworkInterface"
+                  - "ec2:DescribeNetworkInterfaces"
+                  - "ec2:DescribeSubnets"
+                  - "ec2:DeleteNetworkInterface"
+                  - "ec2:AssignPrivateIpAddresses"
+                  - "ec2:UnassignPrivateIpAddresses"
+                Resource:
+                  - "*"
 
   DataNotificationsFunction:
     Type: AWS::Lambda::Function
