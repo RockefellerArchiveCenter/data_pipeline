@@ -552,7 +552,6 @@ Resources:
             - Name: logging-volume
       DataFetch${ObjectType}TaskEvent:
         Type: AWS::Events::Rule
-        DependsOn: !Sub DataFetch${ObjectType}EcsTask
         Properties:
           Description: "Triggers fetches of data every ten minutes"
           ScheduleExpression: rate(10 minutes)
