@@ -300,30 +300,6 @@ Resources:
                   - 'logs:PutLogEvents'
                 Resource:
                   - !GetAtt DataTransformLogGroup.Arn
-
-  DataTransformSsmRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Tags:
-        - Key: Environment
-          Value: !Ref ApplicationEnvironment
-        - Key: Application
-          Value: !Ref ApplicationName
-        - Key: Workload
-          Value: !Ref Workload
-        - Key: WorkloadType
-          Value: processing
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS:
-                - !Sub arn:aws:iam::${AWS::AccountId}:role/${ApplicationEnvironment}-${ApplicationName}-lambda-role
-            Action:
-              - 'sts:AssumeRole'
-      Description: Allows access to SSM parameters.
-      Policies:
         - PolicyName: DataTransformSSMPolicy
           PolicyDocument:
             Version: '2012-10-17'
@@ -332,31 +308,7 @@ Resources:
                 Action:
                   - 'ssm:GetParametersByPath'
                 Resource:
-                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}/*
-
-  DataTransformSnsRole:
-    Type: AWS::IAM::Role
-    Properties:
-      Tags:
-        - Key: Environment
-          Value: !Ref ApplicationEnvironment
-        - Key: Application
-          Value: !Ref ApplicationName
-        - Key: Workload
-          Value: !Ref Workload
-        - Key: WorkloadType
-          Value: processing
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS:
-                - !Sub arn:aws:iam::${AWS::AccountId}:role/${ApplicationEnvironment}-${ApplicationName}-lambda-role
-            Action:
-              - 'sts:AssumeRole'
-      Description: Allows Lambda to send SNS messages.
-      Policies:
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}/*
         - PolicyName: DataTransformSNSPolicy
           PolicyDocument:
             Version: '2012-10-17'
@@ -366,6 +318,30 @@ Resources:
                   - 'sns:Publish'
                 Resource:
                   - !Ref SNSTopicArn
+        - PolicyName: DataMergeSQSPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'sqs:ReceiveMessage'
+                  - 'sqs:DeleteMessage'
+                  - 'sqs:GetQueueAttributes'
+                Resource: !Ref SQSQueueArn
+        - PolicyName: DataTransformVpcPolicy
+          PolicyDocument: 
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "ec2:CreateNetworkInterface"
+                  - "ec2:DescribeNetworkInterfaces"
+                  - "ec2:DescribeSubnets"
+                  - "ec2:DeleteNetworkInterface"
+                  - "ec2:AssignPrivateIpAddresses"
+                  - "ec2:UnassignPrivateIpAddresses"
+                Resource:
+                  - "*"
 
   DataTransformLambda:
     Type: AWS::Lambda::Function
@@ -383,8 +359,6 @@ Resources:
       Environment:
         Variables:
           ENVIRONMENT: !Ref ApplicationEnvironment
-          AWS_SSM_ROLE_ARN: !GetAtt DataTransformSsmRole.Arn
-          SNS_ROLE_ARN: !GetAtt DataTransformSnsRole.Arn
       LoggingConfig:
         LogGroup: !Ref DataTransformLogGroup
       Tags:
