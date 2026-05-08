@@ -148,8 +148,16 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: 
-                  - 'ssm:GetParametersByPath*'
-                Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}*'
+                  - 'ssm:GetParametersByPath'
+                Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}'
+        - PolicyName: DataMergeSessionTokenParameterStorePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'ssm:GetParameter'
+                Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/data_fetch/*'
         - PolicyName: DataMergeLogPolicy
           PolicyDocument:
             Version: '2012-10-17'
@@ -201,8 +209,9 @@ Resources:
       Code:
         S3Bucket: !Sub 'rac-${ApplicationEnvironment}-lambda'
         S3Key: !Sub '${ApplicationName}.zip'
+      Description: Merges fetched data for discovery.
       FunctionName: !Ref ApplicationName
-      Handler: merge_data.lambda_handler
+      Handler: src.merge_data.lambda_handler
       LoggingConfig:
         LogGroup: !Ref DataMergeLogGroup
       Role: !GetAtt DataMergeRole.Arn
@@ -241,7 +250,7 @@ Resources:
           Value: !Ref Workload
         - Key: WorkloadType
           Value: processing
-      LogGroupName: !Sub "/aws/lambda/${ApplicationName}"
+      LogGroupName: !Sub "/rac/${ApplicationEnvironment}/data_pipeline/lambda/${ApplicationName}"
       RetentionInDays: 90
 
   DataMergeEventSourceMapping:

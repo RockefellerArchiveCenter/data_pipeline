@@ -308,7 +308,7 @@ Resources:
                 Action:
                   - 'ssm:GetParametersByPath'
                 Resource:
-                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}/*
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}
         - PolicyName: DataTransformSNSPolicy
           PolicyDocument:
             Version: '2012-10-17'
@@ -350,8 +350,8 @@ Resources:
         S3Bucket: !Sub rac-${ApplicationEnvironment}-lambda
         S3Key: !Sub '${ApplicationName}.zip'
       Description: Transforms fetched data for discovery.
-      FunctionName: !Sub ${ApplicationEnvironment}-${ApplicationName}
-      Handler: transformer.lambda_handler
+      FunctionName: !Ref ApplicationName
+      Handler: src.transformer.lambda_handler
       MemorySize: 1024
       Role: !GetAtt DataTransformLambdaRole.Arn
       Runtime: python3.12

@@ -117,6 +117,7 @@ Resources:
       Code:
         S3Bucket: !Sub 'rac-${ApplicationEnvironment}-lambda'
         S3Key: !Sub '${ApplicationName}.zip'
+      Description: Sends error notifications to a Teams channel.
       FunctionName: !Ref ApplicationName
       Handler: handle_data_notifications.lambda_handler
       LoggingConfig:

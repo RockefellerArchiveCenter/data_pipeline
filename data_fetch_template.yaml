@@ -388,6 +388,15 @@ Resources:
                   - 'ssm:GetParametersByPath'
                 Resource:
                   - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}
+        - PolicyName: DataFetchSSMUpdatePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'ssm:PutParameter'
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}/*
 
   DataFetchSnsRole:
     Type: AWS::IAM::Role
@@ -451,8 +460,8 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: 
-                  - 'dynamodb:PutItem'
                   - 'dynamodb:GetItem'
+                  - 'dynamodb:UpdateItem'
                 Resource:
                   - !GetAtt DynamoDbTable.Arn
 
@@ -468,8 +477,22 @@ Resources:
           Value: !Ref Workload
         - Key: WorkloadType
           Value: processing
-      LogGroupName: !Sub "/rac/${ApplicationEnvironment}/digital_ingest/ecs/${ApplicationName}"
+      LogGroupName: !Sub "/rac/${ApplicationEnvironment}/data_pipeline/ecs/${ApplicationName}"
       RetentionInDays: 90
+
+  DataFetchScheduleGroup:
+    Type: AWS::Scheduler::ScheduleGroup
+    Properties:
+      Name: "DataFetchScheduleGroup"
+      Tags:
+        - Key: Environment
+          Value: !Ref ApplicationEnvironment
+        - Key: Application
+          Value: !Ref ApplicationName
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
   
   Fn::ForEach::ObjectFetchType:
     - ObjectType
@@ -502,13 +525,13 @@ Resources:
                 - Name: AWS_REGION
                   Value: !Ref AWS::Region
                 - Name: DYNAMODB_ROLE_ARN
-                  Value: !Ref DataFetchDynamoDbRole
+                  Value: !GetAtt DataFetchDynamoDbRole.Arn
                 - Name: SNS_ROLE_ARN
-                  Value: !Ref DataFetchSnsRole
+                  Value: !GetAtt DataFetchSnsRole.Arn
                 - Name: SNS_TOPIC
                   Value: !Ref SNSTopicArn
                 - Name: SSM_ROLE_ARN
-                  Value: !Ref DataFetchSsmRole
+                  Value: !GetAtt DataFetchSsmRole.Arn
                 - Name: SOURCE_SYSTEM
                   Value: !FindInMap [ObjectTypeMap, !Ref ObjectType, Source]
                 - Name: OBJECT_STATUS
@@ -550,27 +573,31 @@ Resources:
               Value: processing
           Volumes: 
             - Name: logging-volume
-      DataFetch${ObjectType}TaskEvent:
-        Type: AWS::Events::Rule
+      DataFetch${ObjectType}Schedule:
+        Type: AWS::Scheduler::Schedule
         Properties:
-          Description: "Triggers fetches of data every ten minutes"
-          ScheduleExpression: rate(10 minutes)
+          Description: !Sub "Triggers fetches of ${ObjectType} data"
+          FlexibleTimeWindow:
+            MaximumWindowInMinutes: 15
+            Mode: FLEXIBLE
+          GroupName: !Ref DataFetchScheduleGroup
+          Name: !Sub DataFetch${ObjectType}Schedule
+          ScheduleExpression: rate(20 minutes)
           State: DISABLED
-          Targets:
-            - Id: !Sub DataFetch${ObjectType}EcsTask
-              Arn: !Ref EcsClusterArn
-              EcsParameters:
-                TaskDefinitionArn:
-                  Fn::GetAtt: [!Sub "DataFetch${ObjectType}EcsTask", "TaskDefinitionArn"]
-                NetworkConfiguration:
-                  AwsVpcConfiguration:
-                    AssignPublicIp: ENABLED
-                    Subnets: 
-                      - !Ref Subnet
-                    SecurityGroups:
-                      - !Ref SecurityGroup
-              RoleArn:
-                Fn::GetAtt: [!Sub "DataFetch${ObjectType}TaskEventRole", "Arn"]
+          Target:
+            Arn: !Ref EcsClusterArn
+            EcsParameters:
+              LaunchType: FARGATE
+              TaskDefinitionArn:
+                Fn::GetAtt: [!Sub "DataFetch${ObjectType}EcsTask", "TaskDefinitionArn"]
+              NetworkConfiguration:
+                AwsvpcConfiguration:
+                  Subnets: 
+                    - !Ref Subnet
+                  SecurityGroups:
+                    - !Ref SecurityGroup
+            RoleArn:
+              Fn::GetAtt: [!Sub "DataFetch${ObjectType}TaskEventRole", "Arn"]
       DataFetch${ObjectType}TaskEventRole:
         Type: AWS::IAM::Role
         Properties:
@@ -582,13 +609,41 @@ Resources:
                   - sts:AssumeRole
                 Principal:
                   Service:
-                    - events.amazonaws.com
+                    - scheduler.amazonaws.com
           Policies:
             - PolicyName: DataFetchTaskEventPolicy
               PolicyDocument: 
                 Statement:
-                  Action:
-                    - ecs:RunTask
+                  Action: ecs:RunTask
                   Effect: Allow
                   Resource:
-                    - !Sub 'arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/${ApplicationName}*'
+                    - !Sub 'arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/DataFetch${ObjectType}EcsTask:*'
+            - PolicyName: DataFetchPassIamRolePolicy
+              PolicyDocument:
+                Statement:
+                  Action: iam:PassRole
+                  Effect: Allow
+                  Resource: "*"
+                  Condition:
+                    StringLike:
+                      iam:PassedToService: ecs-tasks.amazonaws.com
+            - PolicyName: DataFetchTagResourcePolicy
+              PolicyDocument:
+                Statement:
+                  Action: ecs:TagResource
+                  Effect: Allow
+                  Resource: "*"
+                  Condition:
+                    StringEquals:
+                      ecs:CreateAction:
+                        - RunTask
+            - PolicyName: DataFetchPassRolePolicy
+              PolicyDocument:
+                Statement:
+                  Action: iam:PassRole
+                  Effect: Allow
+                  Resource:
+                    - !GetAtt ECSTaskExecutionRole.Arn
+                    - !GetAtt DataFetchSsmRole.Arn
+                    - !GetAtt DataFetchSnsRole.Arn
+                    - !GetAtt DataFetchDynamoDbRole.Arn
