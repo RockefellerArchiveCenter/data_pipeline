@@ -30,8 +30,8 @@ Mappings:
       prod: 2
   Cartographer:
     BaseUrl:
-      dev: https://cartographer.rockarch.org
-      prod: https://cartographer.rockarch.org
+      dev: http://cartographer.rockarch.org
+      prod: http://cartographer.rockarch.org
     HealthCheckPath:
       dev: "/status"
       prod: "/status"
@@ -242,7 +242,7 @@ Resources:
       Protocol: sqs
       RawMessageDelivery: true
       Endpoint: !GetAtt DataTransformQueue.Arn
-      FilterPolicy: {"requested_action": ["updated"]}
+      FilterPolicy: {"requested_action": ["transform"]}
       FilterPolicyScope: MessageAttributes
 
   # SNS Subscription for SQS Index Queue
