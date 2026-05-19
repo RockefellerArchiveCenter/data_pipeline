@@ -216,7 +216,7 @@ Resources:
         LogGroup: !Ref DataMergeLogGroup
       Role: !GetAtt DataMergeRole.Arn
       Runtime: python3.12
-      Timeout: 30
+      Timeout: 900
       Environment:
         Variables:
           ENV: !Ref ApplicationEnvironment
@@ -258,6 +258,9 @@ Resources:
     Properties:
       EventSourceArn: !Ref SQSQueueArn
       FunctionName: !GetAtt DataMergeFunction.Arn
+      BatchSize: 5
+      ScalingConfig:
+        MaximumConcurrency: 30
 
 Outputs:
   DataMergeFunctionArn:
