@@ -582,7 +582,8 @@ Resources:
             Mode: FLEXIBLE
           GroupName: !Ref DataFetchScheduleGroup
           Name: !Sub DataFetch${ObjectType}Schedule
-          ScheduleExpression: rate(20 minutes)
+          ScheduleExpression: cron(0/20 7-19 ? * MON-FRI *)
+          ScheduleExpressionTimezone: America/New_York
           State: DISABLED
           Target:
             Arn: !Ref EcsClusterArn
