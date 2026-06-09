@@ -216,7 +216,7 @@ Resources:
         LogGroup: !Ref DataMergeLogGroup
       Role: !GetAtt DataMergeRole.Arn
       Runtime: python3.12
-      Timeout: 900
+      Timeout: 30
       Environment:
         Variables:
           ENV: !Ref ApplicationEnvironment

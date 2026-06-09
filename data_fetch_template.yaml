@@ -241,8 +241,8 @@ Resources:
     Properties:
       TableName: !Ref DynamoDbTableName
       ProvisionedThroughput:
-        WriteCapacityUnits: 10
-        ReadCapacityUnits: 10
+        WriteCapacityUnits: 5
+        ReadCapacityUnits: 5
       AttributeDefinitions:
         - AttributeName: ObjectStatus
           AttributeType: S

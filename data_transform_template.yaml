@@ -355,7 +355,7 @@ Resources:
       MemorySize: 1024
       Role: !GetAtt DataTransformLambdaRole.Arn
       Runtime: python3.12
-      Timeout: 900
+      Timeout: 30
       Environment:
         Variables:
           ENVIRONMENT: !Ref ApplicationEnvironment
