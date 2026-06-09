@@ -187,7 +187,7 @@ Resources:
         LogGroup: !Ref DataIndexLogGroup
       Role: !GetAtt DataIndexRole.Arn
       Runtime: python3.12
-      Timeout: 900 #maximum timeout for lambda
+      Timeout: 30
       Environment:
         Variables:
           ENV: !Ref ApplicationEnvironment
