@@ -1,0 +1,650 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::LanguageExtensions'
+
+Description: >
+  data-fetch
+
+  Fetches data for discovery.
+
+Parameters: 
+  ContainerAccountId:
+    Type: String
+    Description: Account ID under which container repository is located.
+    Default: "817658541382"
+  ApplicationEnvironment:
+    Type: String
+    Description: Environment in which application should be deployed.
+    AllowedValues:
+      - dev
+      - prod
+    Default: dev
+  ApplicationName:
+    Type: String
+    Description: Name of the application to be deployed.
+  ArchivesSpaceBaseurl:
+    Type: String
+    Description: Base URL for ArchivesSpace.
+  ArchivesSpaceUsername:
+    Type: String
+    Description: Username for ArchivesSpace.
+  ArchivesSpacePassword:
+    Type: String
+    Description: Password for ArchivesSpace.
+  ArchivesSpaceRepo:
+    Type: String
+    Description: Repo ID for ArchivesSpace.
+  CartographerBaseurl:
+    Type: String
+    Description: Base URL for Cartographer.
+  CartographerHealthCheckPath:
+    Type: String
+    Description: Health check path for Cartographer.
+  DynamoDbTableName:
+    Type: String
+    Description: DynamoDB table containing fetch data.
+    Default: "fetches"
+  EcsClusterArn:
+    Type: String
+    Description: ARN of ECS Cluster in which to run Task.
+  RestrictedFindingAidStatuses:
+    Type: String
+    Description: List of statuses denoting restricted finding aids.
+    Default: restricted
+  ValidId0Prefixes:
+    Type: String
+    Description: List of prefixes denoting valid finding aids.
+    Default: "FA"
+  SecurityGroup:
+    Type: String
+    Description: Security group for the ECS Task to use.
+  SNSTopicArn:
+    Type: String
+    Description: ARN for SNS Topic to which events should be sent.
+  Subnet:
+    Type: String
+    Description: Subnet in which the ECS Task should run.
+  Workload:
+    Type: String
+    Description: Name of workload for this stack.
+
+Mappings:
+  ObjectTypeMap:
+    UpdatedArchivalObject:
+      ObjectType: archival_object
+      Status: updated
+      Source: archivesspace
+    DeletedArchivalObject:
+      ObjectType: archival_object
+      Status: deleted
+      Source: archivesspace
+    UpdatedResource:
+      ObjectType: resource
+      Status: updated
+      Source: archivesspace
+    DeletedResource:
+      ObjectType: resource
+      Status: deleted
+      Source: archivesspace
+    UpdatedSubject:
+      ObjectType: subject
+      Status: updated
+      Source: archivesspace
+    DeletedSubject:
+      ObjectType: subject
+      Status: deleted
+      Source: archivesspace
+    UpdatedPerson:
+      ObjectType: agent_person
+      Status: updated
+      Source: archivesspace
+    DeletedPerson:
+      ObjectType: agent_person
+      Status: deleted
+      Source: archivesspace
+    UpdatedOrganization:
+      ObjectType: agent_corporate_entity
+      Status: updated
+      Source: archivesspace
+    DeletedOrganization:
+      ObjectType: agent_corporate_entity
+      Status: deleted
+      Source: archivesspace
+    UpdatedFamily:
+      ObjectType: agent_family
+      Status: updated
+      Source: archivesspace
+    DeletedFamily:
+      ObjectType: agent_family
+      Status: deleted
+      Source: archivesspace
+    UpdatedArrangementMap:
+      ObjectType: arrangement_map_component
+      Status: updated
+      Source: cartographer
+    DeletedArrangementMap:
+      ObjectType: arrangement_map_component
+      Status: deleted
+      Source: cartographer
+  
+Resources:
+  ArchivesSpaceBaseurlParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Description: Zodiac base URL.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/AS_BASEURL
+      Tags: 
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref ArchivesSpaceBaseurl
+  ArchivesSpaceUsernameParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Description: Zodiac base URL.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/AS_USERNAME
+      Tags: 
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref ArchivesSpaceUsername
+  ArchivesSpacePasswordParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Description: Zodiac base URL.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/AS_PASSWORD
+      Tags: 
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref ArchivesSpacePassword
+  ArchivesSpaceRepoParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Description: Zodiac base URL.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/AS_REPO
+      Tags: 
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref ArchivesSpaceRepo
+  CartographerBaseurlParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Description: Zodiac base URL.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/CARTOGRAPHER_BASEURL
+      Tags: 
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref CartographerBaseurl
+  CartographerHealthCheckPathParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Description: Zodiac base URL.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/CARTOGRAPHER_HEALTH_CHECK_PATH
+      Tags: 
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref CartographerHealthCheckPath
+  DynamoDbTableParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Description: Zodiac base URL.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/DYNAMODB_TABLE
+      Tags: 
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref DynamoDbTable
+  RestrictedFindingAidStatusesParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Description: Zodiac base URL.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/RESTRICTED_FINDING_AID_STATUSES
+      Tags: 
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref RestrictedFindingAidStatuses
+  ValidId0PrefixesParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Description: Zodiac base URL.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/VALID_ID0_PREFIXES
+      Tags: 
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref ValidId0Prefixes
+  
+  DynamoDbTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref DynamoDbTableName
+      ProvisionedThroughput:
+        WriteCapacityUnits: 5
+        ReadCapacityUnits: 5
+      AttributeDefinitions:
+        - AttributeName: ObjectStatus
+          AttributeType: S
+        - AttributeName: ObjectType
+          AttributeType: S
+      KeySchema: 
+        - AttributeName: ObjectType
+          KeyType: HASH
+        - AttributeName: ObjectStatus
+          KeyType: RANGE
+
+  ECSTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref ApplicationEnvironment
+        - Key: Application
+          Value: !Ref ApplicationName
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: LogPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: 
+                  - !GetAtt DataFetchLogGroup.Arn
+        - PolicyName: EcrPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'ecr:BatchCheckLayerAvailability'
+                  - 'ecr:GetDownloadUrlForLayer'
+                  - 'ecr:BatchGetImage'
+                Resource: 
+                  - !Sub arn:${AWS::Partition}:ecr:${AWS::Region}:${ContainerAccountId}:repository/${ApplicationName}
+              - Effect: Allow
+                Action:
+                  - 'ecr:GetAuthorizationToken'
+                Resource: '*'
+        - PolicyName: SSMPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ssm:GetParameters'
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}/*
+
+  DataFetchUser:
+    Type: AWS::IAM::User
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref ApplicationEnvironment
+        - Key: Application
+          Value: !Ref ApplicationName
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+
+  DataFetchUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties: 
+      UserName: !Ref DataFetchUser
+
+  DataFetchUserIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Description: Secret Access Key ID for DataFetchUser.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/AWS_ACCESS_KEY_ID
+      Tags: 
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !Ref DataFetchUserAccessKey
+
+  DataFetchUserKeyParameter:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Description: Secret Access Key for DataFetchUser.
+      Name: !Sub /${ApplicationEnvironment}/${ApplicationName}/AWS_SECRET_ACCESS_KEY
+      Tags: 
+        Environment: !Ref ApplicationEnvironment
+        Application: !Ref ApplicationName
+        Workload: !Ref Workload
+        WorkloadType: processing
+      Type: String
+      Value: !GetAtt DataFetchUserAccessKey.SecretAccessKey
+
+  DataFetchSsmRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref ApplicationEnvironment
+        - Key: Application
+          Value: !Ref ApplicationName
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt DataFetchUser.Arn
+            Action:
+              - 'sts:AssumeRole'
+      Description: 'Allows access to SSM parameters.'
+      Policies:
+        - PolicyName: DataFetchSSMPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'ssm:GetParametersByPath'
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}
+        - PolicyName: DataFetchSSMUpdatePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'ssm:PutParameter'
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${ApplicationEnvironment}/${ApplicationName}/*
+
+  DataFetchSnsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref ApplicationEnvironment
+        - Key: Application
+          Value: !Ref ApplicationName
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt DataFetchUser.Arn
+            Action:
+              - 'sts:AssumeRole'
+      Description: 'Allows user to send SNS messages.'
+      Policies:
+        - PolicyName: DataFetchSNSPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'sns:Publish'
+                Resource:
+                  - !Ref SNSTopicArn
+
+  DataFetchDynamoDbRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref ApplicationEnvironment
+        - Key: Application
+          Value: !Ref ApplicationName
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt DataFetchUser.Arn
+            Action:
+              - 'sts:AssumeRole'
+      Description: 'Allows user to read to and write from DynamoDB'
+      Policies:
+        - PolicyName: DataFetchDynamoPolicy
+          PolicyDocument: 
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:UpdateItem'
+                Resource:
+                  - !GetAtt DynamoDbTable.Arn
+
+  DataFetchLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      Tags:
+        - Key: Environment
+          Value: !Ref ApplicationEnvironment
+        - Key: Application
+          Value: !Ref ApplicationName
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+      LogGroupName: !Sub "/rac/${ApplicationEnvironment}/data_pipeline/ecs/${ApplicationName}"
+      RetentionInDays: 90
+
+  DataFetchScheduleGroup:
+    Type: AWS::Scheduler::ScheduleGroup
+    Properties:
+      Name: "DataFetchScheduleGroup"
+      Tags:
+        - Key: Environment
+          Value: !Ref ApplicationEnvironment
+        - Key: Application
+          Value: !Ref ApplicationName
+        - Key: Workload
+          Value: !Ref Workload
+        - Key: WorkloadType
+          Value: processing
+  
+  Fn::ForEach::ObjectFetchType:
+    - ObjectType
+    - - UpdatedArchivalObject
+      - DeletedArchivalObject
+      - UpdatedResource
+      - DeletedResource
+      - UpdatedSubject
+      - DeletedSubject
+      - UpdatedPerson
+      - DeletedPerson
+      - UpdatedOrganization
+      - DeletedOrganization
+      - UpdatedFamily
+      - DeletedFamily
+      - UpdatedArrangementMap
+      - DeletedArrangementMap
+    - DataFetch${ObjectType}EcsTask:
+        Type: AWS::ECS::TaskDefinition
+        Properties: 
+          Cpu: "1024"
+          Memory: "3072"
+          ContainerDefinitions: 
+            - Name: !Ref ApplicationName
+              Image: !Sub "${ContainerAccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ApplicationName}:${ApplicationEnvironment}"
+              Essential: true
+              Environment:
+                - Name: ENVIRONMENT
+                  Value: !Ref ApplicationEnvironment
+                - Name: AWS_REGION
+                  Value: !Ref AWS::Region
+                - Name: DYNAMODB_ROLE_ARN
+                  Value: !GetAtt DataFetchDynamoDbRole.Arn
+                - Name: SNS_ROLE_ARN
+                  Value: !GetAtt DataFetchSnsRole.Arn
+                - Name: SNS_TOPIC
+                  Value: !Ref SNSTopicArn
+                - Name: SSM_ROLE_ARN
+                  Value: !GetAtt DataFetchSsmRole.Arn
+                - Name: SOURCE_SYSTEM
+                  Value: !FindInMap [ObjectTypeMap, !Ref ObjectType, Source]
+                - Name: OBJECT_STATUS
+                  Value: !FindInMap [ObjectTypeMap, !Ref ObjectType, Status]
+                - Name: OBJECT_TYPE
+                  Value: !FindInMap [ObjectTypeMap, !Ref ObjectType, ObjectType]
+              MountPoints:
+                - SourceVolume: logging-volume
+                  ContainerPath: /var/tmp/
+                  ReadOnly: false
+              ReadonlyRootFilesystem: true
+              Secrets:
+                - Name: AWS_ACCESS_KEY_ID
+                  ValueFrom: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DataFetchUserIdParameter}'
+                - Name: AWS_SECRET_ACCESS_KEY
+                  ValueFrom: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DataFetchUserKeyParameter}'
+              LogConfiguration:
+                LogDriver: awslogs
+                Options:
+                  "awslogs-group": !Ref DataFetchLogGroup
+                  "awslogs-region": !Ref AWS::Region
+                  "awslogs-stream-prefix": "ecs"
+          ExecutionRoleArn: !GetAtt ECSTaskExecutionRole.Arn
+          Family: !Sub DataFetch${ObjectType}EcsTask
+          NetworkMode: awsvpc
+          RequiresCompatibilities:
+            - FARGATE
+          RuntimePlatform:
+            CpuArchitecture: X86_64
+            OperatingSystemFamily: LINUX
+          Tags:
+            - Key: Environment
+              Value: !Ref ApplicationEnvironment
+            - Key: Application
+              Value: !Ref ApplicationName
+            - Key: Workload
+              Value: !Ref Workload
+            - Key: WorkloadType
+              Value: processing
+          Volumes: 
+            - Name: logging-volume
+      DataFetch${ObjectType}Schedule:
+        Type: AWS::Scheduler::Schedule
+        Properties:
+          Description: !Sub "Triggers fetches of ${ObjectType} data"
+          FlexibleTimeWindow:
+            MaximumWindowInMinutes: 15
+            Mode: FLEXIBLE
+          GroupName: !Ref DataFetchScheduleGroup
+          Name: !Sub DataFetch${ObjectType}Schedule
+          ScheduleExpression: cron(0/20 7-19 ? * MON-FRI *)
+          ScheduleExpressionTimezone: America/New_York
+          State: DISABLED
+          Target:
+            Arn: !Ref EcsClusterArn
+            EcsParameters:
+              LaunchType: FARGATE
+              TaskDefinitionArn:
+                Fn::GetAtt: [!Sub "DataFetch${ObjectType}EcsTask", "TaskDefinitionArn"]
+              NetworkConfiguration:
+                AwsvpcConfiguration:
+                  Subnets: 
+                    - !Ref Subnet
+                  SecurityGroups:
+                    - !Ref SecurityGroup
+            RoleArn:
+              Fn::GetAtt: [!Sub "DataFetch${ObjectType}TaskEventRole", "Arn"]
+      DataFetch${ObjectType}TaskEventRole:
+        Type: AWS::IAM::Role
+        Properties:
+          AssumeRolePolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sts:AssumeRole
+                Principal:
+                  Service:
+                    - scheduler.amazonaws.com
+          Policies:
+            - PolicyName: DataFetchTaskEventPolicy
+              PolicyDocument: 
+                Statement:
+                  Action: ecs:RunTask
+                  Effect: Allow
+                  Resource:
+                    - !Sub 'arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/DataFetch${ObjectType}EcsTask:*'
+            - PolicyName: DataFetchPassIamRolePolicy
+              PolicyDocument:
+                Statement:
+                  Action: iam:PassRole
+                  Effect: Allow
+                  Resource: "*"
+                  Condition:
+                    StringLike:
+                      iam:PassedToService: ecs-tasks.amazonaws.com
+            - PolicyName: DataFetchTagResourcePolicy
+              PolicyDocument:
+                Statement:
+                  Action: ecs:TagResource
+                  Effect: Allow
+                  Resource: "*"
+                  Condition:
+                    StringEquals:
+                      ecs:CreateAction:
+                        - RunTask
+            - PolicyName: DataFetchPassRolePolicy
+              PolicyDocument:
+                Statement:
+                  Action: iam:PassRole
+                  Effect: Allow
+                  Resource:
+                    - !GetAtt ECSTaskExecutionRole.Arn
+                    - !GetAtt DataFetchSsmRole.Arn
+                    - !GetAtt DataFetchSnsRole.Arn
+                    - !GetAtt DataFetchDynamoDbRole.Arn
