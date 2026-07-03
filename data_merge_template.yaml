@@ -45,6 +45,12 @@ Parameters:
     Type: String
     Description: Name of workload for this stack.
 
+Mappings:
+  LambdaConfigs:
+    LoggingLevel:
+      dev: DEBUG
+      prod: INFO
+  
 Resources:
   ArchivesSpaceBaseurlParam:
     Type: AWS::SSM::Parameter
@@ -216,11 +222,12 @@ Resources:
         LogGroup: !Ref DataMergeLogGroup
       Role: !GetAtt DataMergeRole.Arn
       Runtime: python3.12
-      Timeout: 30
+      Timeout: 180
       Environment:
         Variables:
           ENV: !Ref ApplicationEnvironment
           APP_CONFIG_PATH: !Ref ApplicationName
+          LOGGING_LEVEL: !FindInMap [LambdaConfigs, LoggingLevel, !Ref ApplicationEnvironment]
       Tags:
         - Key: Environment
           Value: !Ref ApplicationEnvironment
