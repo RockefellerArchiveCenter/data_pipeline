@@ -68,6 +68,10 @@ Parameters:
     Description: Name of workload for this stack.
 
 Mappings:
+  EcrTaskConfigs:
+    LoggingLevel:
+      dev: DEBUG
+      prod: INFO
   ObjectTypeMap:
     UpdatedArchivalObject:
       ObjectType: archival_object
@@ -522,6 +526,8 @@ Resources:
               Environment:
                 - Name: ENVIRONMENT
                   Value: !Ref ApplicationEnvironment
+                - Name: LOGGING_LEVEL
+                  Value: !FindInMap [EcrTaskConfigs, LoggingLevel, !Ref ApplicationEnvironment]
                 - Name: AWS_REGION
                   Value: !Ref AWS::Region
                 - Name: DYNAMODB_ROLE_ARN
