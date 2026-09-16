@@ -52,18 +52,9 @@ Parameters:
     Type: String
     Default: data_pipeline
     Description: Name of workload for this stack.
-  ArchivesSpacePassword:
-    Type: String
-    Description: Passsword for ArchivesSpace user.
   ElasticsearchHosts:
     Type: String
     Description: Comma-separated hostnames (including ports, if applicable) where Elasticsearch is available.
-  ElasticsearchApiKey:
-    Type: String
-    Description: API key provided by Elasticsearch.
-  TeamsUrl:
-    Type: String
-    Description: URL for a Teams Channel to which error messages should be posted.
 
 Resources:
   # SNS topic
@@ -305,7 +296,7 @@ Resources:
         ApplicationName: data_fetch
         ArchivesSpaceBaseurl: !FindInMap [ArchivesSpace, BaseUrl, !Ref Environment]
         ArchivesSpaceUsername: !FindInMap [ArchivesSpace, Username, !Ref Environment]
-        ArchivesSpacePassword: !Ref ArchivesSpacePassword
+        ArchivesSpacePassword: '{{resolve:secretsmanager:dev/data-pipeline-deploy:SecretString:ArchivesSpacePassword}}'
         ArchivesSpaceRepo: !FindInMap [ArchivesSpace, Repo, !Ref Environment]
         CartographerBaseurl: !FindInMap [Cartographer, BaseUrl, !Ref Environment]
         CartographerHealthCheckPath: !FindInMap [Cartographer, HealthCheckPath, !Ref Environment]
@@ -334,7 +325,7 @@ Resources:
         ApplicationName: data_merge
         ArchivesSpaceBaseurl: !FindInMap [ArchivesSpace, BaseUrl, !Ref Environment]
         ArchivesSpaceUsername: !FindInMap [ArchivesSpace, Username, !Ref Environment]
-        ArchivesSpacePassword: !Ref ArchivesSpacePassword
+        ArchivesSpacePassword: '{{resolve:secretsmanager:dev/data-pipeline-deploy:SecretString:ArchivesSpacePassword}}'
         CartographerBaseurl: !FindInMap [Cartographer, BaseUrl, !Ref Environment]
         CartographerHealthCheckPath: !FindInMap [Cartographer, HealthCheckPath, !Ref Environment]
         SNSTopicArn: !Ref DataPipelineTopic
@@ -382,7 +373,7 @@ Resources:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_index
         ElasticsearchHosts: !Ref ElasticsearchHosts
-        ElasticsearchApiKey: !Ref ElasticsearchApiKey
+        ElasticsearchApiKey: '{{resolve:secretsmanager:dev/data-pipeline-deploy:SecretString:ElasticsearchApiKey}}'
         SNSTopicArn: !Ref DataPipelineTopic
         SQSQueueArn: !GetAtt DataIndexQueue.Arn
         SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
@@ -409,4 +400,4 @@ Resources:
         NotificationsQueueArn: !GetAtt DataFailureNotificationsQueue.Arn
         SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
         Subnet: !FindInMap [DeployResources, Subnet, !Ref Environment] 
-        TeamsUrl: !Ref TeamsUrl
+        TeamsUrl: '{{resolve:secretsmanager:dev/data-pipeline-deploy:SecretString:TeamsUrl}}'
