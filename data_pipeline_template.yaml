@@ -296,7 +296,7 @@ Resources:
         ApplicationName: data_fetch
         ArchivesSpaceBaseurl: !FindInMap [ArchivesSpace, BaseUrl, !Ref Environment]
         ArchivesSpaceUsername: !FindInMap [ArchivesSpace, Username, !Ref Environment]
-        ArchivesSpacePassword: '{{resolve:secretsmanager:dev/data-pipeline-deploy:SecretString:ArchivesSpacePassword}}'
+        ArchivesSpacePassword: !Sub '{{resolve:secretsmanager:${Environment}/data-pipeline-deploy:SecretString:ArchivesSpacePassword}}'
         ArchivesSpaceRepo: !FindInMap [ArchivesSpace, Repo, !Ref Environment]
         CartographerBaseurl: !FindInMap [Cartographer, BaseUrl, !Ref Environment]
         CartographerHealthCheckPath: !FindInMap [Cartographer, HealthCheckPath, !Ref Environment]
@@ -325,7 +325,7 @@ Resources:
         ApplicationName: data_merge
         ArchivesSpaceBaseurl: !FindInMap [ArchivesSpace, BaseUrl, !Ref Environment]
         ArchivesSpaceUsername: !FindInMap [ArchivesSpace, Username, !Ref Environment]
-        ArchivesSpacePassword: '{{resolve:secretsmanager:dev/data-pipeline-deploy:SecretString:ArchivesSpacePassword}}'
+        ArchivesSpacePassword: !Sub '{{resolve:secretsmanager:${Environment}/data-pipeline-deploy:SecretString:ArchivesSpacePassword}}'
         CartographerBaseurl: !FindInMap [Cartographer, BaseUrl, !Ref Environment]
         CartographerHealthCheckPath: !FindInMap [Cartographer, HealthCheckPath, !Ref Environment]
         SNSTopicArn: !Ref DataPipelineTopic
@@ -373,7 +373,7 @@ Resources:
         ApplicationEnvironment: !Ref Environment
         ApplicationName: data_index
         ElasticsearchHosts: !Ref ElasticsearchHosts
-        ElasticsearchApiKey: '{{resolve:secretsmanager:dev/data-pipeline-deploy:SecretString:ElasticsearchApiKey}}'
+        ElasticsearchApiKey: !Sub '{{resolve:secretsmanager:${Environment}/data-pipeline-deploy:SecretString:ElasticsearchApiKey}}'
         SNSTopicArn: !Ref DataPipelineTopic
         SQSQueueArn: !GetAtt DataIndexQueue.Arn
         SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
@@ -400,4 +400,4 @@ Resources:
         NotificationsQueueArn: !GetAtt DataFailureNotificationsQueue.Arn
         SecurityGroup: !FindInMap [DeployResources, SecurityGroup, !Ref Environment]
         Subnet: !FindInMap [DeployResources, Subnet, !Ref Environment] 
-        TeamsUrl: '{{resolve:secretsmanager:dev/data-pipeline-deploy:SecretString:TeamsUrl}}'
+        TeamsUrl: !Sub '{{resolve:secretsmanager:${Environment}/data-pipeline-deploy:SecretString:TeamsUrl}}'
